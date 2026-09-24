@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="MenuTooltip" xml:space="preserve"><value>バージョン情報</value></data>
+  <data name="MenuName" xml:space="preserve"><value>バージョン情報</value></data>
+  <data name="TitleBarName" xml:space="preserve"><value>Fusion Ledgerのタイトルバー</value></data>
+  <data name="AppIconName" xml:space="preserve"><value>Fusion Ledgerアイコン</value></data>
+  <data name="ProfileName" xml:space="preserve"><value>サインインユーザー</value></data>
+  <data name="Beta" xml:space="preserve"><value>BETA</value></data>
+  <data name="VersionFormat" xml:space="preserve"><value>バージョン {0}</value></data>
+  <data name="Back" xml:space="preserve"><value>戻る</value></data>
+  <data name="Forward" xml:space="preserve"><value>進む</value></data>
+  <data name="Refresh" xml:space="preserve"><value>再読み込み</value></data>
+  <data name="BackTooltip" xml:space="preserve"><value>前のページへ戻る</value></data>
+  <data name="ForwardTooltip" xml:space="preserve"><value>次のページへ進む</value></data>
+  <data name="RefreshTooltip" xml:space="preserve"><value>ページを再読み込み</value></data>
+  <data name="StatusInitializing" xml:space="preserve"><value>接続準備中</value></data>
+  <data name="StatusNavigating" xml:space="preserve"><value>読み込み中</value></data>
+  <data name="StatusConnected" xml:space="preserve"><value>接続済み</value></data>
+  <data name="StatusOffline" xml:space="preserve"><value>オフライン</value></data>
+  <data name="StatusNavigationFailed" xml:space="preserve"><value>接続できません</value></data>
+  <data name="StatusWebViewInitializationFailed" xml:space="preserve"><value>WebViewを開始できません</value></data>
+  <data name="StatusProcessFailed" xml:space="preserve"><value>WebView2が終了しました</value></data>
+  <data name="StatusExternalOpenFailed" xml:space="preserve"><value>外部リンクを開けません</value></data>
+  <data name="StatusExternalOpened" xml:space="preserve"><value>外部リンクを既定のアプリで開きました</value></data>
+  <data name="InfoOfflineTitle" xml:space="preserve"><value>オフライン</value></data>
+  <data name="InfoOfflineMessage" xml:space="preserve"><value>接続を確認して、もう一度お試しください。</value></data>
+  <data name="InfoNavigationFailedTitle" xml:space="preserve"><value>ページを読み込めません</value></data>
+  <data name="InfoNavigationFailedMessage" xml:space="preserve"><value>許可されたFusion Ledgerページを再試行してください。</value></data>
+  <data name="InfoWebViewInitializationFailedTitle" xml:space="preserve"><value>WebViewを開始できません</value></data>
+  <data name="InfoWebViewInitializationFailedMessage" xml:space="preserve"><value>安全なWebViewの初期化を再試行してください。</value></data>
+  <data name="InfoProcessFailedTitle" xml:space="preserve"><value>WebView2が終了しました</value></data>
+  <data name="InfoProcessFailedMessage" xml:space="preserve"><value>ページを手動で再起動するには再試行してください。</value></data>
+  <data name="InfoExternalOpenFailedTitle" xml:space="preserve"><value>外部リンクを開けません</value></data>
+  <data name="InfoExternalOpenFailedMessage" xml:space="preserve"><value>Windowsが既定のアプリを起動できませんでした。</value></data>
+  <data name="Retry" xml:space="preserve"><value>再試行</value></data>
+  <data name="StatusIconName" xml:space="preserve"><value>接続状態</value></data>
+</root>

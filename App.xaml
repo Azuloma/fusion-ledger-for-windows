@@ -1,0 +1,44 @@
+<Application
+    x:Class="FusionLedger.Windows.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:FusionLedger.Windows">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="FusionAccentBrush" Color="#B83E47" />
+                    <SolidColorBrush x:Key="FusionAccentForegroundBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="FusionAccentSubtleBrush" Color="#1AB83E47" />
+                    <SolidColorBrush x:Key="FusionChromeBrush" Color="#F7F4F4" />
+                    <SolidColorBrush x:Key="FusionSurfaceBrush" Color="#FFFFFFFF" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="FusionAccentBrush" Color="#EF7C82" />
+                    <SolidColorBrush x:Key="FusionAccentForegroundBrush" Color="#3A1114" />
+                    <SolidColorBrush x:Key="FusionAccentSubtleBrush" Color="#25EF7C82" />
+                    <SolidColorBrush x:Key="FusionChromeBrush" Color="#2A2223" />
+                    <SolidColorBrush x:Key="FusionSurfaceBrush" Color="#20191A" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <!-- Use the OS-provided high-contrast highlight pair; never hard-code
+                         both badge foreground and background to the same color. -->
+                    <StaticResource x:Key="FusionAccentBrush" ResourceKey="SystemControlHighlightAltAccentBrush" />
+                    <StaticResource x:Key="FusionAccentForegroundBrush" ResourceKey="SystemControlHighlightAltAccentBrush" />
+                    <StaticResource x:Key="FusionAccentSubtleBrush" ResourceKey="SystemControlHighlightAccentBrush" />
+    <StaticResource x:Key="FusionChromeBrush" ResourceKey="SystemControlPageBackgroundChromeLowBrush" />
+    <StaticResource x:Key="FusionSurfaceBrush" ResourceKey="SystemControlPageBackgroundBaseLowBrush" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <x:Double x:Key="FusionSpacing4">4</x:Double>
+            <x:Double x:Key="FusionSpacing8">8</x:Double>
+            <x:Double x:Key="FusionSpacing12">12</x:Double>
+            <x:Double x:Key="FusionSpacing16">16</x:Double>
+            <x:Double x:Key="FusionSpacing24">24</x:Double>
+            <x:Double x:Key="FusionSpacing40">40</x:Double>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

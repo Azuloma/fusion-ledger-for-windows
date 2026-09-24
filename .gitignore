@@ -1,0 +1,10 @@
+bin/
+obj/
+AppPackages/
+TestResults/
+artifacts/
+*.user
+*.suo
+*.pfx
+.vs/
+BundleArtifacts/

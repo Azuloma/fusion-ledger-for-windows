@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\NavigationPolicy.cs" Link="NavigationPolicy.cs" />
+    <Compile Include="..\..\ProfilePayloadParser.cs" Link="ProfilePayloadParser.cs" />
+    <Compile Include="..\..\ProfileResponseCoordinator.cs" Link="ProfileResponseCoordinator.cs" />
+    <Compile Include="..\..\NativeState.cs" Link="NativeState.cs" />
+  </ItemGroup>
+</Project>

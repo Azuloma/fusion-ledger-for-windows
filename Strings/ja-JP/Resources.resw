@@ -38,4 +38,26 @@
   <data name="SessionClearError"><value>ローカルのサインインデータを消去できませんでした。再試行するか、このウィンドウを閉じてください。</value></data>
   <data name="Retry"><value>再試行</value></data>
   <data name="Close"><value>閉じる</value></data>
+  <data name="SettingsDescription"><value>このWindowsアプリの言語と外観を選択します。言語をアプリ全体に適用するには再起動が必要です。</value></data>
+  <data name="LanguageHeader"><value>言語</value></data>
+  <data name="LanguageEnglish"><value>English</value></data>
+  <data name="LanguageJapanese"><value>日本語</value></data>
+  <data name="ThemeHeader"><value>テーマ</value></data>
+  <data name="ThemeSystem"><value>システム</value></data>
+  <data name="ThemeLight"><value>ライト</value></data>
+  <data name="ThemeDark"><value>ダーク</value></data>
+  <data name="SettingsRestartTitle"><value>保存しました</value></data>
+  <data name="SettingsRestartMessage"><value>設定を保存しました。言語をアプリ全体に適用するにはアプリを再起動してください。</value></data>
+  <data name="SettingsThemeSavedTitle"><value>テーマを保存しました</value></data>
+  <data name="SettingsThemeSavedMessage"><value>テーマをすぐに適用しました。</value></data>
+  <data name="SettingsSaveErrorTitle"><value>設定を保存できません</value></data>
+  <data name="SettingsSaveErrorMessage"><value>設定を保存できませんでした。ローカルストレージを確認して再試行してください。</value></data>
+  <data name="VersionInfoDescription"><value>このFusion Ledger for Windowsビルドの実行時情報です。</value></data>
+  <data name="VersionLabel"><value>バージョン</value></data>
+  <data name="BetaLabel"><value>リリースチャネル</value></data>
+  <data name="FrameworkLabel"><value>UIフレームワーク</value></data>
+  <data name="WindowsAppSdkLabel"><value>Windows App SDKアセンブリ</value></data>
+  <data name="WebViewLabel"><value>WebView2の用途</value></data>
+  <data name="ArchitectureLabel"><value>プロセスアーキテクチャ</value></data>
+  <data name="PackageIdentityLabel"><value>パッケージID</value></data>
 </root>

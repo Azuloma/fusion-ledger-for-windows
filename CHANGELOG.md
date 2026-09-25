@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.0
+
+- Added native App settings with persisted English/Japanese language and System/Light/Dark theme choices.
+- Added runtime Version info and configured the supported AppWindow title bar for the Tall system caption-button layout.
+
 ## v0.4.1
 
 - Refined the native TitleBar alignment and responsive search sizing.

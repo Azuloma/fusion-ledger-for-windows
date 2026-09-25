@@ -2,7 +2,7 @@
 
 ## Scope
 
-v0.4.1 is a native WinUI 3 shell and login-only prototype. The web application is used solely as the authentication surface in LoginWindow. MainWindow is not a browser wrapper and contains no WebView2.
+v0.5.0 is a native WinUI 3 shell and login-only prototype. The web application is used solely as the authentication surface in LoginWindow. MainWindow is not a browser wrapper and contains no WebView2.
 
 ## Window and title bar
 
@@ -12,9 +12,13 @@ The TitleBar is 48px high with centered content. The local search box is 32px hi
 
 The account flyout is a 320px-wide, 440px-maximum-height standard Flyout. Its identity block contains only the authenticated username, localized status/role and validated avatar, followed by a separator and full-width 44px-minimum rows for profile settings, role-gated administration and sign out. Icons are Segoe Fluent controls and decorative icon access is hidden from automation.
 
+App settings is a single-column, scrollable native page. It persists the fixed `ui.language` and `ui.theme` values in LocalSettings, validates values on read and falls back to `en-US`/`System`. Theme changes update both native roots immediately; System resolves from `UISettings.GetColorValue(UIColorType.Background)` while preserving High Contrast resources and follows `ColorValuesChanged` when available. Language changes show a localized restart notice. Version info reads assembly/package identity and reports the Windows App SDK assembly and installed WebView2 runtime versions when available; unavailable values are not fabricated.
+
+The supported AppWindow title bar is configured with `PreferredHeightOption=Tall` when customization is available. XAML retains its 48 DIP TitleBar height; physical AppWindow pixels are never assigned directly to XAML. Windows caption buttons remain system-owned; no manual caption-button reimplementation or inset arithmetic is used.
+
 ## Native navigation
 
-NavigationView uses `PaneDisplayMode=Auto`, hides its built-in back/settings affordances, and exposes Dashboard, Projects and Commit history plus footer entries for server maintenance, app settings and version information. Maintenance and administration are available only for a parsed `admin` role. All pages are honest placeholders with a heading and a not-connected follow-up message; no fabricated metrics, user records or non-functional controls are allowed.
+NavigationView uses `PaneDisplayMode=Auto`, hides its built-in back/settings affordances, and exposes Dashboard, Projects and Commit history plus footer entries for server maintenance, app settings and version information. Maintenance and administration are available only for a parsed `admin` role. Dashboard, Projects, Commit history, maintenance, profile and administration are honest placeholders with a heading and a not-connected follow-up message; settings and version information are functional native pages. No fabricated metrics, user records or non-functional controls are allowed.
 
 ## Login boundary
 

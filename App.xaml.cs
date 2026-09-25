@@ -1,4 +1,6 @@
 using Microsoft.UI.Xaml;
+using Windows.Globalization;
+using Windows.Storage;
 
 namespace FusionLedger.Windows;
 
@@ -9,9 +11,32 @@ public partial class App : Application
     private bool _transitioning;
     private bool _signingOut;
 
-    public App() => InitializeComponent();
+    public App()
+    {
+        ApplySavedLanguage();
+        InitializeComponent();
+    }
 
-    protected override void OnLaunched(LaunchActivatedEventArgs args) => ShowLoginWindow();
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    {
+        ShowLoginWindow();
+    }
+
+    private static void ApplySavedLanguage()
+    {
+        try
+        {
+            var values = ApplicationData.Current.LocalSettings.Values;
+            var saved = values[SettingsPolicy.LanguageKey] as string;
+            ApplicationLanguages.PrimaryLanguageOverride = SettingsPolicy.NormalizeLanguage(saved);
+        }
+        catch
+        {
+            // A settings store failure must not prevent sign-in. English is the safe fallback.
+            try { ApplicationLanguages.PrimaryLanguageOverride = SettingsPolicy.DefaultLanguage; }
+            catch { /* Keep the OS language if the host does not permit an override. */ }
+        }
+    }
 
     private LoginWindow ShowLoginWindow(bool resetSession = false)
     {

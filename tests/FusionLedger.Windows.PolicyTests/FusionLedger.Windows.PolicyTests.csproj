@@ -10,5 +10,6 @@
     <Compile Include="..\..\ProfilePayloadParser.cs" Link="ProfilePayloadParser.cs" />
     <Compile Include="..\..\ProfileResponseCoordinator.cs" Link="ProfileResponseCoordinator.cs" />
     <Compile Include="..\..\TitleBarLayoutPolicy.cs" Link="TitleBarLayoutPolicy.cs" />
+    <Compile Include="..\..\SettingsPolicy.cs" Link="SettingsPolicy.cs" />
   </ItemGroup>
 </Project>

@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:wv2="using:Microsoft.UI.Xaml.Controls"
     Title="">
-    <Grid RowSpacing="12" Padding="24" Background="{ThemeResource FusionSurfaceBrush}">
+    <Grid x:Name="RootGrid" RowSpacing="12" Padding="24" Background="{ThemeResource FusionSurfaceBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />

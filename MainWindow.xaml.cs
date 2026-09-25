@@ -4,10 +4,13 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.UI.Windowing;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel.Resources;
+using Windows.Storage;
 using Windows.Storage.Streams;
+using WinRT.Interop;
 
 namespace FusionLedger.Windows;
 
@@ -17,15 +20,22 @@ public sealed partial class MainWindow : Window
     private readonly ResourceLoader _strings = ResourceLoader.GetForViewIndependentUse();
     private readonly ObservableCollection<string> _searchSuggestions = [];
     private readonly Stack<NativePage> _history = new();
+    private readonly ThemeService _themeService = new();
     private NativePage _currentPage = NativePage.Dashboard;
+    private RadioButtons? _languageOptions;
+    private RadioButtons? _themeOptions;
+    private InfoBar? _settingsInfoBar;
+    private bool _updatingSettings;
 
     public MainWindow(AuthenticatedUser user)
     {
         _user = user;
         InitializeComponent();
+        Closed += MainWindow_Closed;
         SystemBackdrop = new MicaBackdrop();
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
+        ConfigureNativeTitleBar();
         AppTitleBar.IconSource = new ImageIconSource
         {
             ImageSource = new BitmapImage(new Uri("ms-appx:///Assets/fusion-ledger_ico.png"))
@@ -35,11 +45,38 @@ public sealed partial class MainWindow : Window
         ConfigureProfile();
         ConfigureAccelerators();
         ApplyLocalizedStrings();
+        ApplySavedTheme();
         Navigation.SelectedItem = Navigation.MenuItems[0];
         NavigateTo(NativePage.Dashboard, false);
     }
 
     private string L(string key) => _strings.GetString(key);
+
+    private void ConfigureNativeTitleBar()
+    {
+        try
+        {
+            var hwnd = WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = AppWindow.GetFromWindowId(windowId);
+            if (AppWindowTitleBar.IsCustomizationSupported())
+            {
+                appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+            }
+        }
+        catch
+        {
+            // Unpackaged or older host shells can omit AppWindow customization.
+            // The standard WinUI TitleBar remains usable with its safe 48px layout.
+        }
+    }
+
+    private void ApplySavedTheme()
+    {
+        _themeService.Apply(RootGrid, ReadTheme());
+    }
+
+    private void MainWindow_Closed(object sender, WindowEventArgs args) => _themeService.Dispose();
 
     private void ApplyLocalizedStrings()
     {
@@ -188,15 +225,154 @@ public sealed partial class MainWindow : Window
 
     private FrameworkElement CreatePlaceholder(NativePage page)
     {
+        if (page == NativePage.AppSettings) return CreateSettingsPage();
+        if (page == NativePage.VersionInfo) return CreateVersionInfoPage();
+
         var panel = new StackPanel { Spacing = 12, Padding = new Thickness(32) };
         panel.Children.Add(new TextBlock { Text = L("Page_" + NativePageCatalog.SearchKey(page)), Style = (Style)Application.Current.Resources["TitleTextBlockStyle"] });
         panel.Children.Add(new TextBlock { Text = L("NotConnected"), TextWrapping = TextWrapping.Wrap });
-        if (page == NativePage.VersionInfo)
-        {
-            var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.4.1";
-            panel.Children.Add(new TextBlock { Text = string.Format(L("VersionFormat"), $"v{version}") });
-        }
         return panel;
+    }
+
+    private FrameworkElement CreateSettingsPage()
+    {
+        var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+        var panel = new StackPanel { Spacing = 16, Padding = new Thickness(32) };
+        panel.Children.Add(new TextBlock
+        {
+            Text = L("Page_App settings"),
+            Style = (Style)Application.Current.Resources["TitleTextBlockStyle"]
+        });
+        panel.Children.Add(new TextBlock { Text = L("SettingsDescription"), TextWrapping = TextWrapping.Wrap });
+
+        panel.Children.Add(new TextBlock { Text = L("LanguageHeader"), Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"] });
+        _updatingSettings = true;
+        _languageOptions = new RadioButtons();
+        AutomationProperties.SetName(_languageOptions, L("LanguageHeader"));
+        _languageOptions.Items.Add(new RadioButton { Content = L("LanguageEnglish"), Tag = "en-US" });
+        _languageOptions.Items.Add(new RadioButton { Content = L("LanguageJapanese"), Tag = "ja-JP" });
+        _languageOptions.SelectedItem = FindRadioButton(_languageOptions, ReadLanguage());
+        _languageOptions.SelectionChanged += SettingsLanguage_SelectionChanged;
+        panel.Children.Add(_languageOptions);
+
+        panel.Children.Add(new TextBlock { Text = L("ThemeHeader"), Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"] });
+        _themeOptions = new RadioButtons();
+        AutomationProperties.SetName(_themeOptions, L("ThemeHeader"));
+        _themeOptions.Items.Add(new RadioButton { Content = L("ThemeSystem"), Tag = "System" });
+        _themeOptions.Items.Add(new RadioButton { Content = L("ThemeLight"), Tag = "Light" });
+        _themeOptions.Items.Add(new RadioButton { Content = L("ThemeDark"), Tag = "Dark" });
+        _themeOptions.SelectedItem = FindRadioButton(_themeOptions, ReadTheme());
+        _themeOptions.SelectionChanged += SettingsTheme_SelectionChanged;
+        panel.Children.Add(_themeOptions);
+        _updatingSettings = false;
+
+        _settingsInfoBar = new InfoBar { IsOpen = false, IsClosable = false };
+        panel.Children.Add(_settingsInfoBar);
+        scroll.Content = panel;
+        return scroll;
+    }
+
+    private FrameworkElement CreateVersionInfoPage()
+    {
+        var info = RuntimeVersionInfo.GetSnapshot();
+        var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+        var panel = new StackPanel { Spacing = 12, Padding = new Thickness(32) };
+        panel.Children.Add(new TextBlock { Text = L("Page_Version info"), Style = (Style)Application.Current.Resources["TitleTextBlockStyle"] });
+        panel.Children.Add(new TextBlock { Text = L("VersionInfoDescription"), TextWrapping = TextWrapping.Wrap });
+        AddVersionRow(panel, "VersionLabel", info.DisplayVersion);
+        AddVersionRow(panel, "BetaLabel", L("Beta"));
+        AddVersionRow(panel, "FrameworkLabel", info.Framework);
+        AddVersionRow(panel, "WindowsAppSdkLabel", info.WindowsAppSdkVersion);
+        AddVersionRow(panel, "WebViewLabel", info.WebViewDescription);
+        AddVersionRow(panel, "ArchitectureLabel", info.Architecture);
+        AddVersionRow(panel, "PackageIdentityLabel", info.PackageIdentity);
+        scroll.Content = panel;
+        return scroll;
+    }
+
+    private void AddVersionRow(StackPanel panel, string labelKey, string value)
+    {
+        var row = new StackPanel { Spacing = 2 };
+        row.Children.Add(new TextBlock { Text = L(labelKey), Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"] });
+        row.Children.Add(new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(row);
+    }
+
+    private static RadioButton? FindRadioButton(RadioButtons buttons, string tag) =>
+        buttons.Items.OfType<RadioButton>().FirstOrDefault(button => string.Equals(button.Tag as string, tag, StringComparison.Ordinal));
+
+    private string ReadLanguage()
+    {
+        try { return SettingsPolicy.NormalizeLanguage(ApplicationData.Current.LocalSettings.Values[SettingsPolicy.LanguageKey] as string); }
+        catch { return SettingsPolicy.DefaultLanguage; }
+    }
+
+    private string ReadTheme()
+    {
+        return ThemeService.ReadSavedPreference();
+    }
+
+    private void SettingsLanguage_SelectionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (_updatingSettings || _languageOptions?.SelectedItem is not RadioButton item) return;
+        var language = SettingsPolicy.NormalizeLanguage(item.Tag as string);
+        PersistSetting(SettingsPolicy.LanguageKey, language, restartRequired: true);
+    }
+
+    private void SettingsTheme_SelectionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (_updatingSettings || _themeOptions?.SelectedItem is not RadioButton item) return;
+        var theme = SettingsPolicy.NormalizeTheme(item.Tag as string);
+        if (PersistSetting(SettingsPolicy.ThemeKey, theme, restartRequired: false)) ApplySavedTheme();
+    }
+
+    private bool PersistSetting(string key, string value, bool restartRequired)
+    {
+        var previous = key == SettingsPolicy.LanguageKey ? ReadLanguage() : ReadTheme();
+        try
+        {
+            ApplicationData.Current.LocalSettings.Values[key] = value;
+            if (restartRequired)
+            {
+                ShowSettingsInfo(L("SettingsRestartTitle"), L("SettingsRestartMessage"), InfoBarSeverity.Informational);
+            }
+            else
+            {
+                ShowSettingsInfo(L("SettingsThemeSavedTitle"), L("SettingsThemeSavedMessage"), InfoBarSeverity.Informational);
+            }
+            return true;
+        }
+        catch
+        {
+            RollbackSetting(key, previous);
+            ShowSettingsInfo(L("SettingsSaveErrorTitle"), L("SettingsSaveErrorMessage"), InfoBarSeverity.Error);
+            return false;
+        }
+    }
+
+    private void RollbackSetting(string key, string value)
+    {
+        _updatingSettings = true;
+        try
+        {
+            if (key == SettingsPolicy.LanguageKey && _languageOptions is not null)
+                _languageOptions.SelectedItem = FindRadioButton(_languageOptions, value);
+            else if (key == SettingsPolicy.ThemeKey && _themeOptions is not null)
+                _themeOptions.SelectedItem = FindRadioButton(_themeOptions, value);
+        }
+        finally
+        {
+            _updatingSettings = false;
+        }
+    }
+
+    private void ShowSettingsInfo(string title, string message, InfoBarSeverity severity)
+    {
+        if (_settingsInfoBar is null) return;
+        _settingsInfoBar.Title = title;
+        _settingsInfoBar.Message = message;
+        _settingsInfoBar.Severity = severity;
+        _settingsInfoBar.IsOpen = true;
     }
 
     private void SyncNavigationSelection(NativePage page)

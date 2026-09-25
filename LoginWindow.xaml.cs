@@ -11,6 +11,7 @@ public sealed partial class LoginWindow : Window
 {
     private readonly ProfileResponseCoordinator _responses = new();
     private readonly ResourceLoader _strings = ResourceLoader.GetForViewIndependentUse();
+    private readonly ThemeService _themeService = new();
     private readonly bool _resetSessionBeforeNavigate;
     private CoreWebView2? _core;
     private bool _initialized;
@@ -24,6 +25,7 @@ public sealed partial class LoginWindow : Window
     {
         _resetSessionBeforeNavigate = resetSessionBeforeNavigate;
         InitializeComponent();
+        _themeService.Apply(RootGrid, ThemeService.ReadSavedPreference());
         LoginWebView.Loaded += LoginWebView_Loaded;
         Closed += LoginWindow_Closed;
         ExtendsContentIntoTitleBar = false;
@@ -208,11 +210,12 @@ public sealed partial class LoginWindow : Window
     {
         _closed = true;
         _responses.Invalidate();
-        if (_core is null) return;
-        _core.NavigationStarting -= Core_NavigationStarting;
-        _core.NewWindowRequested -= Core_NewWindowRequested;
-        _core.PermissionRequested -= Core_PermissionRequested;
-        _core.WebResourceResponseReceived -= Core_WebResourceResponseReceived;
+        _themeService.Dispose();
+        if (_core is not { } core) return;
+        core.NavigationStarting -= Core_NavigationStarting;
+        core.NewWindowRequested -= Core_NewWindowRequested;
+        core.PermissionRequested -= Core_PermissionRequested;
+        core.WebResourceResponseReceived -= Core_WebResourceResponseReceived;
     }
 
     private static Uri? TryParseUri(string? value) =>

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.1
+
+- Fixed a crash after successful login by deferring initial page navigation until the shell loads and preventing reentrant selection changes.
+- Moved the standard NavigationView toggle onto the Dashboard, set its expanded width to 240 DIP, and added EntranceNavigationTransitionInfo animations for section changes.
+
 ## v0.5.0
 
 - Added native App settings with persisted English/Japanese language and System/Light/Dark theme choices.

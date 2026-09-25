@@ -18,10 +18,8 @@
                            VerticalContentAlignment="Center"
                            Title=""
                            Subtitle=""
-                           IsPaneToggleButtonVisible="True"
                            IsBackButtonVisible="False"
                            IsBackButtonEnabled="False"
-                           PaneToggleRequested="AppTitleBar_PaneToggleRequested"
                            BackRequested="AppTitleBar_BackRequested"
                            AutomationProperties.Name="">
             <controls:TitleBar.Content>
@@ -121,8 +119,9 @@
         <NavigationView x:Name="Navigation"
                         Grid.Row="1"
                         PaneDisplayMode="Auto"
+                        OpenPaneLength="240"
                         IsBackButtonVisible="Collapsed"
-                        IsPaneToggleButtonVisible="False"
+                        IsPaneToggleButtonVisible="True"
                         IsSettingsVisible="False"
                         SelectionChanged="Navigation_SelectionChanged"
                         AutomationProperties.Name="">

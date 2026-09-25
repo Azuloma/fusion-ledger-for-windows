@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Windowing;
 using System.Collections.ObjectModel;
@@ -26,6 +27,8 @@ public sealed partial class MainWindow : Window
     private RadioButtons? _themeOptions;
     private InfoBar? _settingsInfoBar;
     private bool _updatingSettings;
+    private bool _syncingNavigationSelection;
+    private bool _initialNavigationCompleted;
 
     public MainWindow(AuthenticatedUser user)
     {
@@ -46,8 +49,6 @@ public sealed partial class MainWindow : Window
         ConfigureAccelerators();
         ApplyLocalizedStrings();
         ApplySavedTheme();
-        Navigation.SelectedItem = Navigation.MenuItems[0];
-        NavigateTo(NativePage.Dashboard, false);
     }
 
     private string L(string key) => _strings.GetString(key);
@@ -112,6 +113,10 @@ public sealed partial class MainWindow : Window
     private void RootGrid_Loaded(object sender, RoutedEventArgs e)
     {
         ApplySearchWidth(RootGrid.ActualWidth);
+        if (_initialNavigationCompleted) return;
+        // Let NavigationView finish its initial selection/layout before Frame.Navigate runs.
+        _initialNavigationCompleted = true;
+        NavigateTo(NativePage.Dashboard, false);
     }
 
     private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -191,16 +196,13 @@ public sealed partial class MainWindow : Window
         RootGrid.KeyboardAccelerators.Add(accelerator);
     }
 
-    private void AppTitleBar_PaneToggleRequested(TitleBar sender, object args)
-    {
-        Navigation.IsPaneOpen = !Navigation.IsPaneOpen;
-    }
-
     private void AppTitleBar_BackRequested(TitleBar sender, object args) => GoBack();
 
     private void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (args.SelectedItem is NavigationViewItem item && TryParsePage(item.Tag as string, out var page))
+        if (!_syncingNavigationSelection
+            && args.SelectedItem is NavigationViewItem item
+            && TryParsePage(item.Tag as string, out var page))
         {
             NavigateTo(page);
         }
@@ -210,7 +212,8 @@ public sealed partial class MainWindow : Window
     {
         if (remember && page != _currentPage) _history.Push(_currentPage);
         _currentPage = page;
-        ContentFrame.Content = CreatePlaceholder(page);
+        ContentFrame.Navigate(typeof(NativeContentPage), CreatePlaceholder(page), new EntranceNavigationTransitionInfo());
+        ContentFrame.BackStack.Clear();
         AppTitleBar.IsBackButtonVisible = NativePageCatalog.IsNested(page);
         AppTitleBar.IsBackButtonEnabled = _history.Count > 0;
         SyncNavigationSelection(page);
@@ -381,7 +384,15 @@ public sealed partial class MainWindow : Window
         {
             if (TryParsePage(item.Tag as string, out var itemPage) && itemPage == page)
             {
-                Navigation.SelectedItem = item;
+                _syncingNavigationSelection = true;
+                try
+                {
+                    Navigation.SelectedItem = item;
+                }
+                finally
+                {
+                    _syncingNavigationSelection = false;
+                }
                 return;
             }
         }

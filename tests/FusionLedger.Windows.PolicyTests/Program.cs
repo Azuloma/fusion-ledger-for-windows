@@ -54,9 +54,21 @@ var appCode = File.ReadAllText(Path.Combine(sourceRoot, "App.xaml.cs"));
 var versionCode = File.ReadAllText(Path.Combine(sourceRoot, "RuntimeVersionInfo.cs"));
 var themeCode = File.ReadAllText(Path.Combine(sourceRoot, "ThemeService.cs"));
 Assert(mainXaml.Contains("controls:TitleBar", StringComparison.Ordinal), "MainWindow must use the WinUI TitleBar control.");
-Assert(mainXaml.Contains("PaneToggleRequested", StringComparison.Ordinal) && mainXaml.Contains("BackRequested", StringComparison.Ordinal), "TitleBar events must be wired.");
+Assert(mainXaml.Contains("BackRequested", StringComparison.Ordinal), "TitleBar back event must remain wired.");
 Assert(mainXaml.Contains("NavigationView", StringComparison.Ordinal) && mainXaml.Contains("FooterMenuItems", StringComparison.Ordinal), "Native navigation must expose footer items.");
-Assert(mainXaml.Contains("IsPaneToggleButtonVisible=\"False\"", StringComparison.Ordinal), "NavigationView pane toggle must be controlled by TitleBar only.");
+Assert(mainXaml.Contains("IsPaneToggleButtonVisible=\"True\"", StringComparison.Ordinal)
+    && mainXaml.Contains("PaneDisplayMode=\"Auto\"", StringComparison.Ordinal), "NavigationView must show its standard pane toggle in the automatic pane layout.");
+Assert(mainXaml.Contains("OpenPaneLength=\"240\"", StringComparison.Ordinal), "Expanded NavigationView pane must be narrower than the 320 DIP default.");
+var titleBarMarkup = mainXaml[..mainXaml.IndexOf("</controls:TitleBar>", StringComparison.Ordinal)];
+Assert(!mainXaml.Contains("PaneToggleRequested", StringComparison.Ordinal)
+    && !titleBarMarkup.Contains("IsPaneToggleButtonVisible", StringComparison.Ordinal), "TitleBar must not host a duplicate pane toggle.");
+Assert(mainCode.Contains("ContentFrame.Navigate(typeof(NativeContentPage)", StringComparison.Ordinal)
+    && mainCode.Contains("new EntranceNavigationTransitionInfo()", StringComparison.Ordinal), "Section changes must use the native entrance navigation transition.");
+Assert(mainCode.Contains("private void RootGrid_Loaded", StringComparison.Ordinal)
+    && mainCode.Contains("_initialNavigationCompleted = true", StringComparison.Ordinal)
+    && mainCode.Contains("NavigateTo(NativePage.Dashboard, false)", StringComparison.Ordinal)
+    && !mainCode.Contains("Navigation.SelectedItem = Navigation.MenuItems[0]", StringComparison.Ordinal), "Initial frame navigation must wait until the shell has loaded instead of reentering NavigationView selection.");
+Assert(mainCode.Contains("_syncingNavigationSelection", StringComparison.Ordinal), "Programmatic selected-item synchronization must not recursively navigate the frame.");
 Assert(mainXaml.Contains("Height=\"48\"", StringComparison.Ordinal) && mainXaml.Contains("VerticalContentAlignment=\"Center\"", StringComparison.Ordinal), "TitleBar must use centered 48px alignment.");
 Assert(mainXaml.Contains("Height=\"32\"", StringComparison.Ordinal) && mainXaml.Contains("MinWidth=\"96\"", StringComparison.Ordinal) && mainXaml.Contains("MaxWidth=\"540\"", StringComparison.Ordinal), "Page search must use the bounded runtime size.");
 Assert(mainXaml.Contains("SizeChanged=\"RootGrid_SizeChanged\"", StringComparison.Ordinal)
@@ -105,7 +117,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.5.0", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.5.1", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -142,10 +154,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.5.0</Version>", StringComparison.Ordinal), "Version source of truth must be v0.5.0.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.5.0.0\"", StringComparison.Ordinal), "Manifest version must be v0.5.0.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.5.0", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.5.0", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.5.1</Version>", StringComparison.Ordinal), "Version source of truth must be v0.5.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.5.1.0\"", StringComparison.Ordinal), "Manifest version must be v0.5.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.5.1", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.5.1", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -156,4 +168,4 @@ foreach (var locale in new[] { "en-US", "ja-JP" })
 }
 Assert(!File.Exists(Path.Combine(sourceRoot, "Assets", "Fonts", "MonaSans.ttf")), "Native Mona Sans binary must remain absent.");
 
-Console.WriteLine("v0.5.0 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+Console.WriteLine("v0.5.1 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

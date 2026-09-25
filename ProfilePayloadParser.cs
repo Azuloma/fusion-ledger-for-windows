@@ -2,24 +2,24 @@ using System.Text.Json;
 
 namespace FusionLedger.Windows;
 
-/// <summary>
-/// The small, renderer-independent profile contract consumed by the native title bar.
-/// </summary>
-public sealed record ProfileSnapshot(string? Username, byte[]? AvatarPng)
-{
-    public static ProfileSnapshot Empty { get; } = new(null, null);
-}
+public sealed record AuthenticatedUser(
+    string Username,
+    byte[]? AvatarPng,
+    string Status,
+    string Role,
+    bool ProjectManager);
 
-/// <summary>
-/// Pure validation and parsing for the restricted /api/me response.
-/// It deliberately accepts no image format other than a bounded PNG data URI.
-/// </summary>
+/// <summary>Pure, bounded validation for the native login observer.</summary>
 public static class ProfilePayloadParser
 {
     public const int MaxResponseBytes = 256 * 1024;
     public const int MaxAvatarBytes = 32 * 1024;
     public const int MaxUsernameLength = 128;
+    public const int MaxStatusLength = 32;
+    public const int MaxRoleLength = 32;
     private const string PngDataPrefix = "data:image/png;base64,";
+    private static readonly string[] AllowedStatuses = ["pending", "approved", "rejected", "suspended"];
+    private static readonly string[] AllowedRoles = ["member", "admin"];
 
     public static bool IsMeGet(Uri? uri, string? method)
     {
@@ -33,26 +33,9 @@ public static class ProfilePayloadParser
             && (uri.IsDefaultPort || uri.Port == 443);
     }
 
-    public static bool IsSessionInvalidatingPost(Uri? uri, string? method)
+    public static AuthenticatedUser? ParseAuthenticatedUser(int statusCode, ReadOnlyMemory<byte> utf8Json)
     {
-        return uri is not null
-            && string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase)
-            && uri.Scheme == Uri.UriSchemeHttps
-            && string.Equals(uri.Host, "fusion-ledger.desase0175.workers.dev", StringComparison.OrdinalIgnoreCase)
-            && (uri.AbsolutePath == "/api/logout" || uri.AbsolutePath == "/api/password")
-            && string.IsNullOrEmpty(uri.Query)
-            && string.IsNullOrEmpty(uri.Fragment)
-            && (uri.IsDefaultPort || uri.Port == 443);
-    }
-
-    public static ProfileSnapshot? Parse(int statusCode, ReadOnlyMemory<byte> utf8Json)
-    {
-        if (statusCode == 401)
-        {
-            return ProfileSnapshot.Empty;
-        }
-
-        if (statusCode != 200 || utf8Json.Length == 0 || utf8Json.Length > MaxResponseBytes)
+        if (statusCode == 401 || statusCode != 200 || utf8Json.Length == 0 || utf8Json.Length > MaxResponseBytes)
         {
             return null;
         }
@@ -67,40 +50,31 @@ public static class ProfilePayloadParser
             });
 
             var root = document.RootElement;
-            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("user", out var user))
+            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("user", out var user)
+                || user.ValueKind != JsonValueKind.Object)
             {
                 return null;
             }
 
-            if (user.ValueKind == JsonValueKind.Null)
-            {
-                return ProfileSnapshot.Empty;
-            }
-
-            if (user.ValueKind != JsonValueKind.Object)
+            var username = ReadBoundedString(user, "username", MaxUsernameLength);
+            var status = ReadBoundedString(user, "status", MaxStatusLength);
+            var role = ReadBoundedString(user, "role", MaxRoleLength);
+            if (username is null || status is null || role is null
+                || !AllowedStatuses.Contains(status, StringComparer.OrdinalIgnoreCase)
+                || !AllowedRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
             {
                 return null;
-            }
-
-            string? username = null;
-            if (user.TryGetProperty("username", out var usernameValue)
-                && usernameValue.ValueKind == JsonValueKind.String)
-            {
-                username = usernameValue.GetString()?.Trim();
-                if (string.IsNullOrEmpty(username) || username.Length > MaxUsernameLength)
-                {
-                    username = null;
-                }
             }
 
             byte[]? avatar = null;
-            if (user.TryGetProperty("avatar", out var avatarValue)
-                && avatarValue.ValueKind == JsonValueKind.String)
+            if (user.TryGetProperty("avatar", out var avatarValue) && avatarValue.ValueKind == JsonValueKind.String)
             {
                 avatar = ParsePngDataUri(avatarValue.GetString());
             }
 
-            return new ProfileSnapshot(username, avatar);
+            var projectManager = user.TryGetProperty("project_manager", out var pm)
+                && pm.ValueKind == JsonValueKind.True;
+            return new AuthenticatedUser(username, avatar, status.ToLowerInvariant(), role.ToLowerInvariant(), projectManager);
         }
         catch (JsonException)
         {
@@ -108,33 +82,24 @@ public static class ProfilePayloadParser
         }
     }
 
+    private static string? ReadBoundedString(JsonElement user, string property, int maxLength)
+    {
+        if (!user.TryGetProperty(property, out var value) || value.ValueKind != JsonValueKind.String) return null;
+        var result = value.GetString()?.Trim();
+        return string.IsNullOrWhiteSpace(result) || result.Length > maxLength ? null : result;
+    }
+
     private static byte[]? ParsePngDataUri(string? value)
     {
-        if (value is null || !value.StartsWith(PngDataPrefix, StringComparison.Ordinal))
-        {
-            return null;
-        }
-
+        if (value is null || !value.StartsWith(PngDataPrefix, StringComparison.Ordinal)) return null;
         var encoded = value[PngDataPrefix.Length..];
-        if (encoded.Length == 0 || encoded.Length > ((MaxAvatarBytes + 2) / 3) * 4)
-        {
-            return null;
-        }
-
+        if (encoded.Length == 0 || encoded.Length > ((MaxAvatarBytes + 2) / 3) * 4) return null;
         try
         {
             var bytes = Convert.FromBase64String(encoded);
-            if (bytes.Length > MaxAvatarBytes || !HasPngSignature(bytes))
-            {
-                return null;
-            }
-
-            return bytes;
+            return bytes.Length <= MaxAvatarBytes && HasPngSignature(bytes) ? bytes : null;
         }
-        catch (FormatException)
-        {
-            return null;
-        }
+        catch (FormatException) { return null; }
     }
 
     private static bool HasPngSignature(ReadOnlySpan<byte> bytes)

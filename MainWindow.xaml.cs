@@ -1,507 +1,250 @@
-using Microsoft.UI;
-using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
-using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Microsoft.Web.WebView2.Core;
-using System.Diagnostics;
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.ApplicationModel.Resources;
-using Windows.Storage;
 using Windows.Storage.Streams;
-using Windows.System;
-using WinRT.Interop;
 
 namespace FusionLedger.Windows;
 
 public sealed partial class MainWindow : Window
 {
-    private bool _isReady;
-    private readonly ProfileResponseCoordinator _profileResponses = new();
+    private readonly AuthenticatedUser _user;
     private readonly ResourceLoader _strings = ResourceLoader.GetForViewIndependentUse();
-    private AppWindow? _appWindow;
-    private Button? _retryButton;
-    private NativeAppState _state = NativeAppState.Initializing;
+    private readonly ObservableCollection<string> _searchSuggestions = [];
+    private readonly Stack<NativePage> _history = new();
+    private NativePage _currentPage = NativePage.Dashboard;
 
-    public MainWindow()
+    public MainWindow(AuthenticatedUser user)
     {
+        _user = user;
         InitializeComponent();
         SystemBackdrop = new MicaBackdrop();
-        var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.3.0";
-        Title = $"Fusion Ledger for Windows v{version}";
-        VersionText.Text = string.Format(L("VersionFormat"), $"v{version}");
-        ApplyLocalizedStrings();
-        _retryButton = new Button { Content = L("Retry") };
-        _retryButton.Click += RetryButton_Click;
-        StateInfoBar.ActionButton = _retryButton;
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        AppTitleBar.IconSource = new ImageIconSource
+        {
+            ImageSource = new BitmapImage(new Uri("ms-appx:///Assets/fusion-ledger_ico.png"))
+        };
 
-        ConfigureTitleBar();
-        AppTitleBar.SizeChanged += AppTitleBar_SizeChanged;
-        BrowserCommandBar.SizeChanged += BrowserCommandBar_SizeChanged;
-        Browser.Loaded += Browser_Loaded;
-        SetNativeState(NativeAppState.Initializing);
+        PageSearchBox.ItemsSource = _searchSuggestions;
+        ConfigureProfile();
+        ConfigureAccelerators();
+        ApplyLocalizedStrings();
+        Navigation.SelectedItem = Navigation.MenuItems[0];
+        NavigateTo(NativePage.Dashboard, false);
     }
 
     private string L(string key) => _strings.GetString(key);
 
     private void ApplyLocalizedStrings()
     {
+        AppTitleBar.Title = L("ProductName");
+        AppTitleBar.Subtitle = L("Beta");
+        Title = L("MainWindowTitle");
+        PageSearchBox.PlaceholderText = L("SearchPages");
         AutomationProperties.SetName(AppTitleBar, L("TitleBarName"));
-        AutomationProperties.SetName(MenuButton, L("MenuName"));
-        ToolTipService.SetToolTip(MenuButton, L("MenuTooltip"));
-        AutomationProperties.SetName(ProfilePicture, L("ProfileName"));
-        BetaText.Text = L("Beta");
-        BackButton.Label = L("Back");
-        ForwardButton.Label = L("Forward");
-        ReloadButton.Label = L("Refresh");
-        AutomationProperties.SetName(BackButton, L("Back"));
-        AutomationProperties.SetName(ForwardButton, L("Forward"));
-        AutomationProperties.SetName(ReloadButton, L("Refresh"));
-        ToolTipService.SetToolTip(BackButton, L("BackTooltip"));
-        ToolTipService.SetToolTip(ForwardButton, L("ForwardTooltip"));
-        ToolTipService.SetToolTip(ReloadButton, L("RefreshTooltip"));
-        AutomationProperties.SetName(StatusIcon, L("StatusIconName"));
-        AutomationProperties.SetLiveSetting(StatusRegion, AutomationLiveSetting.Polite);
+        AutomationProperties.SetName(PageSearchBox, L("SearchPages"));
+        AutomationProperties.SetName(Navigation, L("NavigationName"));
+        ToolTipService.SetToolTip(NotificationsButton, L("Notifications"));
+        ToolTipService.SetToolTip(ProfileButton, L("Account"));
+        AutomationProperties.SetName(NotificationsButton, L("Notifications"));
+        AutomationProperties.SetName(ProfileButton, L("Account"));
+        NotificationsHeader.Text = L("Notifications");
+        NotificationsEmpty.Text = L("NotConnected");
+        AccountName.Text = _user.Username;
+        AccountStatus.Text = string.Format(L("AccountStatusFormat"), LocalizedValue("Status", _user.Status));
+        AccountRole.Text = string.Format(L("AccountRoleFormat"), LocalizedValue("Role", _user.Role));
+        foreach (var item in Navigation.MenuItems.OfType<NavigationViewItem>().Concat(Navigation.FooterMenuItems.OfType<NavigationViewItem>()))
+        {
+            if (TryParsePage(item.Tag as string, out var page)) item.Content = L("Page_" + NativePageCatalog.SearchKey(page));
+        }
+        AdministrationButton.Content = L("Administration");
+        ProfileSettingsButton.Content = L("ProfileSettings");
+        SignOutButton.Content = L("SignOut");
+        AutomationProperties.SetName(ProfileSettingsButton, L("ProfileSettings"));
+        AutomationProperties.SetName(AdministrationButton, L("Administration"));
+        AutomationProperties.SetName(SignOutButton, L("SignOut"));
     }
 
-    private void ConfigureTitleBar()
+    private void ConfigureProfile()
     {
-        // The installed WinUI package predates Microsoft.UI.Xaml.Controls.TitleBar.
-        // SetTitleBar still provides the same native drag/caption-button contract.
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
-
-        try
+        AdministrationButton.Visibility = NativePageCatalog.CanOpenMaintenance(_user)
+            ? Visibility.Visible : Visibility.Collapsed;
+        MaintenanceItem.Visibility = NativePageCatalog.CanOpenMaintenance(_user)
+            ? Visibility.Visible : Visibility.Collapsed;
+        ProfilePicture.DisplayName = _user.Username;
+        AccountPicture.DisplayName = _user.Username;
+        if (_user.AvatarPng is { Length: > 0 } avatar)
         {
-            var hwnd = WindowNative.GetWindowHandle(this);
-            var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-            _appWindow = AppWindow.GetFromWindowId(windowId);
-            if (AppWindowTitleBar.IsCustomizationSupported())
-            {
-                _appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
-                _appWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
-                _appWindow.Changed += AppWindow_Changed;
-                UpdateTitleBarInsets();
-            }
-        }
-        catch (Exception exception)
-        {
-            // Windows 10 configurations without title-bar customization still retain
-            // the standard caption buttons and the content title bar.
-            Debug.WriteLine(exception.GetType().Name);
+            _ = ApplyAvatarAsync(avatar);
         }
     }
 
-    private void AppWindow_Changed(AppWindow sender, AppWindowChangedEventArgs args)
-    {
-        UpdateTitleBarInsets();
-    }
-
-    private void UpdateTitleBarInsets()
-    {
-        if (_appWindow?.TitleBar is { } titleBar && AppWindowTitleBar.IsCustomizationSupported())
-        {
-            AppTitleBar.Padding = new Thickness(8, 0, Math.Max(8, titleBar.RightInset + 8), 0);
-        }
-    }
-
-    private void AppTitleBar_SizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        var width = e.NewSize.Width;
-        BetaBadge.Visibility = width < 560 ? Visibility.Collapsed : Visibility.Visible;
-        TitleText.Visibility = width < 480 ? Visibility.Collapsed : Visibility.Visible;
-        TitleText.MaxWidth = Math.Max(80, width - 250);
-    }
-
-    private void BrowserCommandBar_SizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        StatusText.Visibility = e.NewSize.Width < 400 ? Visibility.Collapsed : Visibility.Visible;
-    }
-
-    private void StatusRegion_SizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        StatusText.Visibility = BrowserCommandBar.ActualWidth < 400 ? Visibility.Collapsed : Visibility.Visible;
-    }
-
-    private void MenuButton_Click(object sender, RoutedEventArgs e)
-    {
-        // Button.Flyout opens automatically. This handler intentionally has no other action.
-    }
-
-    private void MenuKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        MenuButton.Flyout?.ShowAt(MenuButton);
-        args.Handled = true;
-    }
-
-    private void BackKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        BackButton_Click(sender, new RoutedEventArgs());
-        args.Handled = true;
-    }
-
-    private void ForwardKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        ForwardButton_Click(sender, new RoutedEventArgs());
-        args.Handled = true;
-    }
-
-    private void ReloadKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        ReloadButton_Click(sender, new RoutedEventArgs());
-        args.Handled = true;
-    }
-
-    private async void Browser_Loaded(object sender, RoutedEventArgs e)
-    {
-        Browser.Loaded -= Browser_Loaded;
-        await InitializeBrowserAsync();
-    }
-
-    private async Task InitializeBrowserAsync()
+    private async Task ApplyAvatarAsync(byte[] avatar)
     {
         try
         {
-            SetNativeState(NativeAppState.Initializing);
-            var profilePath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "FusionLedger.WebView2");
-            Directory.CreateDirectory(profilePath);
-            var environment = await CoreWebView2Environment.CreateWithOptionsAsync(null, profilePath, new CoreWebView2EnvironmentOptions());
-            await Browser.EnsureCoreWebView2Async(environment);
-
-            var core = Browser.CoreWebView2;
-            core.Settings.AreDevToolsEnabled = false;
-            core.Settings.AreHostObjectsAllowed = false;
-            core.Settings.IsWebMessageEnabled = false;
-            core.Settings.IsStatusBarEnabled = false;
-            core.NavigationStarting += Core_NavigationStarting;
-            core.NavigationCompleted += Core_NavigationCompleted;
-            core.NewWindowRequested += Core_NewWindowRequested;
-            core.PermissionRequested += Core_PermissionRequested;
-            core.WebResourceResponseReceived += Core_WebResourceResponseReceived;
-            core.ProcessFailed += Core_ProcessFailed;
-            _isReady = true;
-            core.Navigate(NavigationPolicy.AppUrl);
-        }
-        catch (Exception exception)
-        {
-            _isReady = false;
-            SetNativeState(NativeAppState.WebViewInitializationFailed);
-            Debug.WriteLine(exception.GetType().Name);
-        }
-    }
-
-    private void Core_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
-    {
-        var uri = TryParseUri(e.Uri);
-        if (!NavigationPolicy.IsAllowed(uri))
-        {
-            e.Cancel = true;
-            OpenExternalNavigationAsync(uri);
-            return;
-        }
-
-            SetNativeState(NativeStatePolicy.OnNavigationStarting(uri));
-    }
-
-    private void Core_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
-    {
-        if (e.IsSuccess)
-        {
-            SetNativeState(NativeStatePolicy.OnNavigationCompleted(true, false));
-        }
-        else
-        {
-            SetNativeState(NativeStatePolicy.OnNavigationCompleted(false, IsOfflineError(e.WebErrorStatus)));
-        }
-
-        UpdateNavigationButtons();
-    }
-
-    private void Core_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
-    {
-        e.Handled = true;
-        var uri = TryParseUri(e.Uri);
-        if (NavigationPolicy.IsAllowed(uri))
-        {
-            Browser.CoreWebView2.Navigate(uri!.AbsoluteUri);
-        }
-        else
-        {
-            OpenExternalNavigationAsync(uri);
-        }
-    }
-
-    private static void Core_PermissionRequested(object? sender, CoreWebView2PermissionRequestedEventArgs e)
-    {
-        e.State = CoreWebView2PermissionState.Deny;
-        e.Handled = true;
-    }
-
-    private void Core_ProcessFailed(object? sender, CoreWebView2ProcessFailedEventArgs e)
-    {
-        SetNativeState(NativeAppState.ProcessFailed);
-    }
-
-    private async void Core_WebResourceResponseReceived(object? sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
-    {
-        var uri = TryParseUri(e.Request.Uri);
-        var method = e.Request.Method;
-        var statusCode = e.Response.StatusCode;
-
-        if (ProfilePayloadParser.IsSessionInvalidatingPost(uri, method))
-        {
-            if (statusCode is >= 200 and < 300)
-            {
-                _profileResponses.Invalidate();
-                ClearProfile();
-            }
-
-            return;
-        }
-
-        if (!ProfilePayloadParser.IsMeGet(uri, method) || (statusCode != 200 && statusCode != 401))
-        {
-            return;
-        }
-
-        var generation = _profileResponses.BeginResponse();
-        if (statusCode == 401)
-        {
-            ClearProfile();
-            return;
-        }
-
-        try
-        {
-            // Do not inspect response/request headers. The WebView2 profile owns cookies.
-            using var content = await e.Response.GetContentAsync();
-            using var contentStream = content.AsStream();
-            var body = await ReadAtMostAsync(contentStream, ProfilePayloadParser.MaxResponseBytes);
-            if (body is null || !_profileResponses.IsCurrent(generation))
-            {
-                return;
-            }
-
-            var snapshot = ProfilePayloadParser.Parse(statusCode, body);
-            if (snapshot is null || !_profileResponses.IsCurrent(generation))
-            {
-                return;
-            }
-
-            if (ReferenceEquals(snapshot, ProfileSnapshot.Empty))
-            {
-                if (_profileResponses.IsCurrent(generation))
-                {
-                    ClearProfile();
-                }
-
-                return;
-            }
-
-            await ApplyProfileAsync(snapshot, generation);
+            using var stream = new InMemoryRandomAccessStream();
+            await stream.WriteAsync(avatar.AsBuffer());
+            stream.Seek(0);
+            var image = new BitmapImage();
+            await image.SetSourceAsync(stream);
+            ProfilePicture.ProfilePicture = image;
+            AccountPicture.ProfilePicture = image;
         }
         catch
         {
-            // A failed or oversized response is ignored. Never log response content.
+            // PersonPicture keeps the username initial fallback.
         }
     }
 
-    private static async Task<byte[]?> ReadAtMostAsync(Stream stream, int maxBytes)
+    private void ConfigureAccelerators()
     {
-        using var buffer = new MemoryStream();
-        var chunk = new byte[8192];
-        var total = 0;
-        int read;
-        while ((read = await stream.ReadAsync(chunk, 0, chunk.Length)) > 0)
+        AddAccelerator(global::Windows.System.VirtualKey.K, global::Windows.System.VirtualKeyModifiers.Control, (_, e) =>
         {
-            total += read;
-            if (total > maxBytes)
+            PageSearchBox.Focus(FocusState.Keyboard);
+            e.Handled = true;
+        });
+        // Windows.System.VirtualKey does not name OEM comma; 0xBC is VK_OEM_COMMA (Ctrl+,).
+        AddAccelerator((global::Windows.System.VirtualKey)0xBC, global::Windows.System.VirtualKeyModifiers.Control, (_, e) =>
+        {
+            NavigateTo(NativePage.AppSettings);
+            e.Handled = true;
+        });
+        AddAccelerator(global::Windows.System.VirtualKey.N, global::Windows.System.VirtualKeyModifiers.Menu, (_, e) =>
+        {
+            NotificationsFlyout.ShowAt(NotificationsButton);
+            e.Handled = true;
+        });
+        AddAccelerator(global::Windows.System.VirtualKey.Left, global::Windows.System.VirtualKeyModifiers.Menu, (_, e) =>
+        {
+            GoBack();
+            e.Handled = true;
+        });
+    }
+
+    private void AddAccelerator(global::Windows.System.VirtualKey key, global::Windows.System.VirtualKeyModifiers modifiers,
+        global::Windows.Foundation.TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> handler)
+    {
+        var accelerator = new KeyboardAccelerator { Key = key, Modifiers = modifiers };
+        accelerator.Invoked += handler;
+        RootGrid.KeyboardAccelerators.Add(accelerator);
+    }
+
+    private void AppTitleBar_PaneToggleRequested(TitleBar sender, object args)
+    {
+        Navigation.IsPaneOpen = !Navigation.IsPaneOpen;
+    }
+
+    private void AppTitleBar_BackRequested(TitleBar sender, object args) => GoBack();
+
+    private void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    {
+        if (args.SelectedItem is NavigationViewItem item && TryParsePage(item.Tag as string, out var page))
+        {
+            NavigateTo(page);
+        }
+    }
+
+    private void NavigateTo(NativePage page, bool remember = true)
+    {
+        if (remember && page != _currentPage) _history.Push(_currentPage);
+        _currentPage = page;
+        ContentFrame.Content = CreatePlaceholder(page);
+        AppTitleBar.IsBackButtonVisible = NativePageCatalog.IsNested(page);
+        AppTitleBar.IsBackButtonEnabled = _history.Count > 0;
+        SyncNavigationSelection(page);
+    }
+
+    private void GoBack()
+    {
+        if (_history.Count == 0) return;
+        var page = _history.Pop();
+        NavigateTo(page, false);
+    }
+
+    private FrameworkElement CreatePlaceholder(NativePage page)
+    {
+        var panel = new StackPanel { Spacing = 12, Padding = new Thickness(32) };
+        panel.Children.Add(new TextBlock { Text = L("Page_" + NativePageCatalog.SearchKey(page)), Style = (Style)Application.Current.Resources["TitleTextBlockStyle"] });
+        panel.Children.Add(new TextBlock { Text = L("NotConnected"), TextWrapping = TextWrapping.Wrap });
+        if (page == NativePage.VersionInfo)
+        {
+            var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.4.0";
+            panel.Children.Add(new TextBlock { Text = string.Format(L("VersionFormat"), $"v{version}") });
+        }
+        return panel;
+    }
+
+    private void SyncNavigationSelection(NativePage page)
+    {
+        foreach (var item in Navigation.MenuItems.OfType<NavigationViewItem>().Concat(Navigation.FooterMenuItems.OfType<NavigationViewItem>()))
+        {
+            if (TryParsePage(item.Tag as string, out var itemPage) && itemPage == page)
             {
-                return null;
+                Navigation.SelectedItem = item;
+                return;
             }
-
-            buffer.Write(chunk, 0, read);
         }
-
-        return buffer.ToArray();
     }
 
-    private async Task ApplyProfileAsync(ProfileSnapshot snapshot, long generation)
+    private void PageSearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
-        if (!_profileResponses.IsCurrent(generation))
+        if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
+        var query = sender.Text.Trim();
+        _searchSuggestions.Clear();
+        if (query.Length == 0) return;
+        foreach (var page in Enum.GetValues<NativePage>())
         {
-            return;
-        }
-
-        BitmapImage? bitmap = null;
-        if (snapshot.AvatarPng is { Length: > 0 } avatar)
-        {
-            try
+            if (!IsPageAvailable(page)) continue;
+            var name = NativePageCatalog.SearchKey(page);
+            if (name.Contains(query, StringComparison.CurrentCultureIgnoreCase)
+                || LocalizedValue("Page", name).Contains(query, StringComparison.CurrentCultureIgnoreCase))
             {
-                using var stream = new InMemoryRandomAccessStream();
-                await stream.WriteAsync(avatar.AsBuffer());
-                stream.Seek(0);
-                bitmap = new BitmapImage();
-                await bitmap.SetSourceAsync(stream);
-            }
-            catch
-            {
-                // The username remains available as the PersonPicture initial fallback.
+                _searchSuggestions.Add(LocalizedValue("Page", name));
             }
         }
+    }
 
-        if (_profileResponses.IsCurrent(generation))
+    private void PageSearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        var query = args.ChosenSuggestion as string ?? sender.Text.Trim();
+        var page = Enum.GetValues<NativePage>().FirstOrDefault(candidate =>
         {
-            ProfilePicture.DisplayName = snapshot.Username ?? string.Empty;
-            ProfilePicture.ProfilePicture = bitmap;
+            if (!IsPageAvailable(candidate)) return false;
+            var key = NativePageCatalog.SearchKey(candidate);
+            return key.Equals(query, StringComparison.CurrentCultureIgnoreCase)
+                || LocalizedValue("Page", key).Equals(query, StringComparison.CurrentCultureIgnoreCase);
+        });
+        if (NativePageCatalog.SearchKey(page).Equals(query, StringComparison.CurrentCultureIgnoreCase)
+            || LocalizedValue("Page", NativePageCatalog.SearchKey(page)).Equals(query, StringComparison.CurrentCultureIgnoreCase))
+        {
+            NavigateTo(page);
+            sender.Text = string.Empty;
         }
     }
 
-    private void ClearProfile()
+    private void NotificationsButton_Click(object sender, RoutedEventArgs e) => NotificationsFlyout.ShowAt(NotificationsButton);
+    private void ProfileButton_Click(object sender, RoutedEventArgs e) => AccountFlyout.ShowAt(ProfileButton);
+    private void ProfileSettings_Click(object sender, RoutedEventArgs e) { AccountFlyout.Hide(); NavigateTo(NativePage.ProfileSettings); }
+    private void Administration_Click(object sender, RoutedEventArgs e) { AccountFlyout.Hide(); if (NativePageCatalog.CanOpenMaintenance(_user)) NavigateTo(NativePage.Administration); }
+    private void SignOut_Click(object sender, RoutedEventArgs e) { AccountFlyout.Hide(); App.RequestSignOut(); }
+
+    private string LocalizedValue(string prefix, string value)
     {
-        ProfilePicture.DisplayName = string.Empty;
-        ProfilePicture.ProfilePicture = null;
+        var localized = L(prefix + "_" + value);
+        return string.IsNullOrEmpty(localized) ? value : localized;
     }
 
-    private async void OpenExternalNavigationAsync(Uri? uri)
-    {
-        var opened = await OpenExternalAsync(uri);
-        if (opened)
-        {
-            SetStatusOnly(L("StatusExternalOpened"));
-        }
-        else
-        {
-            SetNativeState(NativeAppState.ExternalOpenFailed);
-        }
-    }
+    private bool IsPageAvailable(NativePage page) =>
+        page is not (NativePage.ServerMaintenance or NativePage.Administration)
+        || NativePageCatalog.CanOpenMaintenance(_user);
 
-    private static async Task<bool> OpenExternalAsync(Uri? uri)
-    {
-        if (!NavigationPolicy.IsExternalLaunchable(uri)) return false;
-        try
-        {
-            return await Launcher.LaunchUriAsync(uri!);
-        }
-        catch (Exception exception)
-        {
-            Debug.WriteLine(exception.GetType().Name);
-            return false;
-        }
-    }
-
-    private void BackButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_isReady && Browser.CoreWebView2.CanGoBack) Browser.CoreWebView2.GoBack();
-    }
-
-    private void ForwardButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_isReady && Browser.CoreWebView2.CanGoForward) Browser.CoreWebView2.GoForward();
-    }
-
-    private void ReloadButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_isReady) Browser.CoreWebView2.Reload();
-    }
-
-    private void UpdateNavigationButtons()
-    {
-        if (!_isReady) return;
-        BackButton.IsEnabled = Browser.CoreWebView2.CanGoBack;
-        ForwardButton.IsEnabled = Browser.CoreWebView2.CanGoForward;
-    }
-
-    private void SetNativeState(NativeAppState state)
-    {
-        _state = state;
-        LoadingBar.IsIndeterminate = NativeStatePolicy.ShowsProgress(state);
-        StatusText.Text = StateText(state);
-        StatusIcon.Symbol = NativeStatePolicy.IsError(state) ? Symbol.Important : state == NativeAppState.Connected ? Symbol.Accept : Symbol.Sync;
-        StateInfoBar.IsOpen = NativeStatePolicy.ShowsInfoBar(state);
-        StateInfoBar.Severity = state == NativeAppState.Offline ? InfoBarSeverity.Warning : InfoBarSeverity.Error;
-        StateInfoBar.Title = InfoTitle(state);
-        StateInfoBar.Message = InfoMessage(state);
-        if (_retryButton is not null)
-        {
-            _retryButton.Content = L("Retry");
-            _retryButton.IsEnabled = NativeStatePolicy.IsRetryAllowed(new Uri(NavigationPolicy.AppUrl));
-        }
-        UpdateNavigationButtons();
-    }
-
-    private void SetStatusOnly(string status)
-    {
-        StateInfoBar.IsOpen = false;
-        StatusText.Text = status;
-        StatusIcon.Symbol = Symbol.Accept;
-    }
-
-    private string StateText(NativeAppState state) => L(state switch
-    {
-        NativeAppState.Initializing => "StatusInitializing",
-        NativeAppState.Navigating => "StatusNavigating",
-        NativeAppState.Connected => "StatusConnected",
-        NativeAppState.Offline => "StatusOffline",
-        NativeAppState.NavigationFailed => "StatusNavigationFailed",
-        NativeAppState.WebViewInitializationFailed => "StatusWebViewInitializationFailed",
-        NativeAppState.ProcessFailed => "StatusProcessFailed",
-        NativeAppState.ExternalOpenFailed => "StatusExternalOpenFailed",
-        _ => "StatusConnected"
-    });
-
-    private string InfoTitle(NativeAppState state) => L(state switch
-    {
-        NativeAppState.Offline => "InfoOfflineTitle",
-        NativeAppState.NavigationFailed => "InfoNavigationFailedTitle",
-        NativeAppState.WebViewInitializationFailed => "InfoWebViewInitializationFailedTitle",
-        NativeAppState.ProcessFailed => "InfoProcessFailedTitle",
-        NativeAppState.ExternalOpenFailed => "InfoExternalOpenFailedTitle",
-        _ => "StatusConnected"
-    });
-
-    private string InfoMessage(NativeAppState state) => L(state switch
-    {
-        NativeAppState.Offline => "InfoOfflineMessage",
-        NativeAppState.NavigationFailed => "InfoNavigationFailedMessage",
-        NativeAppState.WebViewInitializationFailed => "InfoWebViewInitializationFailedMessage",
-        NativeAppState.ProcessFailed => "InfoProcessFailedMessage",
-        NativeAppState.ExternalOpenFailed => "InfoExternalOpenFailedMessage",
-        _ => "StatusConnected"
-    });
-
-    private void RetryButton_Click(object sender, RoutedEventArgs e)
-    {
-        var retryUri = new Uri(NavigationPolicy.AppUrl);
-        if (!NativeStatePolicy.IsRetryAllowed(retryUri))
-        {
-            return;
-        }
-
-        if (!_isReady)
-        {
-            _ = InitializeBrowserAsync();
-            return;
-        }
-
-        SetNativeState(NativeAppState.Navigating);
-        Browser.CoreWebView2.Navigate(retryUri.AbsoluteUri);
-    }
-
-    private static bool IsOfflineError(CoreWebView2WebErrorStatus status)
-        => status is CoreWebView2WebErrorStatus.ConnectionAborted
-            or CoreWebView2WebErrorStatus.ConnectionReset
-            or CoreWebView2WebErrorStatus.Disconnected
-            or CoreWebView2WebErrorStatus.HostNameNotResolved
-            or CoreWebView2WebErrorStatus.Timeout
-            or CoreWebView2WebErrorStatus.ServerUnreachable;
-
-    private static Uri? TryParseUri(string? rawUri)
-    {
-        return Uri.TryCreate(rawUri, UriKind.Absolute, out var uri) ? uri : null;
-    }
+    private static bool TryParsePage(string? tag, out NativePage page) =>
+        Enum.TryParse(tag, ignoreCase: false, out page);
 }

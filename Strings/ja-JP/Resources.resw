@@ -1,37 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <data name="MenuTooltip" xml:space="preserve"><value>バージョン情報</value></data>
-  <data name="MenuName" xml:space="preserve"><value>バージョン情報</value></data>
-  <data name="TitleBarName" xml:space="preserve"><value>Fusion Ledgerのタイトルバー</value></data>
-  <data name="AppIconName" xml:space="preserve"><value>Fusion Ledgerアイコン</value></data>
-  <data name="ProfileName" xml:space="preserve"><value>サインインユーザー</value></data>
-  <data name="Beta" xml:space="preserve"><value>BETA</value></data>
-  <data name="VersionFormat" xml:space="preserve"><value>バージョン {0}</value></data>
-  <data name="Back" xml:space="preserve"><value>戻る</value></data>
-  <data name="Forward" xml:space="preserve"><value>進む</value></data>
-  <data name="Refresh" xml:space="preserve"><value>再読み込み</value></data>
-  <data name="BackTooltip" xml:space="preserve"><value>前のページへ戻る</value></data>
-  <data name="ForwardTooltip" xml:space="preserve"><value>次のページへ進む</value></data>
-  <data name="RefreshTooltip" xml:space="preserve"><value>ページを再読み込み</value></data>
-  <data name="StatusInitializing" xml:space="preserve"><value>接続準備中</value></data>
-  <data name="StatusNavigating" xml:space="preserve"><value>読み込み中</value></data>
-  <data name="StatusConnected" xml:space="preserve"><value>接続済み</value></data>
-  <data name="StatusOffline" xml:space="preserve"><value>オフライン</value></data>
-  <data name="StatusNavigationFailed" xml:space="preserve"><value>接続できません</value></data>
-  <data name="StatusWebViewInitializationFailed" xml:space="preserve"><value>WebViewを開始できません</value></data>
-  <data name="StatusProcessFailed" xml:space="preserve"><value>WebView2が終了しました</value></data>
-  <data name="StatusExternalOpenFailed" xml:space="preserve"><value>外部リンクを開けません</value></data>
-  <data name="StatusExternalOpened" xml:space="preserve"><value>外部リンクを既定のアプリで開きました</value></data>
-  <data name="InfoOfflineTitle" xml:space="preserve"><value>オフライン</value></data>
-  <data name="InfoOfflineMessage" xml:space="preserve"><value>接続を確認して、もう一度お試しください。</value></data>
-  <data name="InfoNavigationFailedTitle" xml:space="preserve"><value>ページを読み込めません</value></data>
-  <data name="InfoNavigationFailedMessage" xml:space="preserve"><value>許可されたFusion Ledgerページを再試行してください。</value></data>
-  <data name="InfoWebViewInitializationFailedTitle" xml:space="preserve"><value>WebViewを開始できません</value></data>
-  <data name="InfoWebViewInitializationFailedMessage" xml:space="preserve"><value>安全なWebViewの初期化を再試行してください。</value></data>
-  <data name="InfoProcessFailedTitle" xml:space="preserve"><value>WebView2が終了しました</value></data>
-  <data name="InfoProcessFailedMessage" xml:space="preserve"><value>ページを手動で再起動するには再試行してください。</value></data>
-  <data name="InfoExternalOpenFailedTitle" xml:space="preserve"><value>外部リンクを開けません</value></data>
-  <data name="InfoExternalOpenFailedMessage" xml:space="preserve"><value>Windowsが既定のアプリを起動できませんでした。</value></data>
-  <data name="Retry" xml:space="preserve"><value>再試行</value></data>
-  <data name="StatusIconName" xml:space="preserve"><value>接続状態</value></data>
+  <data name="ProductName"><value>Fusion Ledger</value></data>
+  <data name="MainWindowTitle"><value>Fusion Ledger for Windows</value></data>
+  <data name="LoginTitle"><value>Fusion Ledger サインイン</value></data>
+  <data name="LoginWebViewName"><value>Fusion Ledger サインイン</value></data>
+  <data name="TitleBarName"><value>Fusion Ledger タイトルバー</value></data>
+  <data name="NavigationName"><value>Fusion Ledger ナビゲーション</value></data>
+  <data name="Beta"><value>Beta</value></data>
+  <data name="SearchPages"><value>ページを検索</value></data>
+  <data name="Notifications"><value>通知</value></data>
+  <data name="Account"><value>アカウント</value></data>
+  <data name="AccountStatusFormat"><value>状態: {0}</value></data>
+  <data name="AccountRoleFormat"><value>役職: {0}</value></data>
+  <data name="Status_pending"><value>承認待ち</value></data>
+  <data name="Status_approved"><value>承認済み</value></data>
+  <data name="Status_rejected"><value>却下</value></data>
+  <data name="Status_suspended"><value>停止中</value></data>
+  <data name="Role_member"><value>メンバー</value></data>
+  <data name="Role_admin"><value>管理者</value></data>
+  <data name="Page_Dashboard"><value>ダッシュボード</value></data>
+  <data name="Page_Projects"><value>プロジェクト</value></data>
+  <data name="Page_Commit history"><value>コミット履歴</value></data>
+  <data name="Page_Server maintenance"><value>サーバー保守</value></data>
+  <data name="Page_App settings"><value>アプリ設定</value></data>
+  <data name="Page_Version info"><value>バージョン情報</value></data>
+  <data name="Page_Profile settings"><value>プロフィール設定</value></data>
+  <data name="Page_Administration"><value>管理</value></data>
+  <data name="NotConnected"><value>このネイティブプレビューは未接続です。後続フェーズで実装します。</value></data>
+  <data name="VersionFormat"><value>バージョン {0}</value></data>
+  <data name="ProfileSettings"><value>プロフィール設定</value></data>
+  <data name="Administration"><value>管理</value></data>
+  <data name="SignOut"><value>サインアウト</value></data>
+  <data name="SignInPrompt"><value>続行するにはサインインしてください。</value></data>
+  <data name="SignInRequired"><value>続行するにはサインインが必要です。</value></data>
+  <data name="SigningOut"><value>ローカルのサインインデータを消去しています…</value></data>
+  <data name="SessionClearError"><value>ローカルのサインインデータを消去できませんでした。再試行するか、このウィンドウを閉じてください。</value></data>
+  <data name="Retry"><value>再試行</value></data>
+  <data name="Close"><value>閉じる</value></data>
 </root>

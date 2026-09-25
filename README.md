@@ -1,64 +1,33 @@
-# Fusion Ledger for Windows (WinUI 3 prototype)
+# Fusion Ledger for Windows v0.4.0
 
-Fusion Ledger for Windows v0.3.0 is a packaged WinUI 3 application shell. It displays the production Fusion Ledger site in WebView2 and keeps authentication cookies in a persistent WebView2 user-data profile. The web application remains responsible for authentication, data and Cloudflare services.
+This is a native-first WinUI 3 prototype. The app starts with a dedicated `LoginWindow` containing the WebView2 sign-in surface. After a verified production `/api/me` response, that window closes and the authenticated native `MainWindow` opens. The MainWindow is deliberately disconnected page scaffolding; it does not embed the web application.
 
-The app uses the standard WinUI 3 packaged desktop/full-trust entry point. The XAML compiler generates the `[STAThread]` `Main` method, and the source manifest uses the Visual Studio template tokens; MSBuild resolves them to the packaged full-trust entry point.
+## Architecture
 
-The 48px custom title bar uses `Window.ExtendsContentIntoTitleBar` and `Window.SetTitleBar`, leaving the Windows-provided caption buttons intact. The installed Microsoft.WindowsAppSDK 2.5.1 package resolves WinUI 2.3.9, which predates the newer `Microsoft.UI.Xaml.Controls.TitleBar` control, so the equivalent native title-bar root is used. It contains a 20px Segoe Fluent `GlobalNavigationButton`, app icon, product name, soft-red BETA badge, a stretch drag area, and a non-interactive profile `PersonPicture` immediately before the caption buttons. The menu contains version information only; its version is read from the assembly version. Alt+I opens the menu; F1 is not used.
+- WinUI 3 packaged x64 desktop app, Microsoft.WindowsAppSDK 2.5.1.
+- MainWindow uses the actual `Microsoft.UI.Xaml.Controls.TitleBar`, Mica, NavigationView, native placeholders, account and notification flyouts.
+- LoginWindow is the only window that creates WebView2. Its persistent profile is `ApplicationData.Current.LocalFolder.Path\FusionLedger.WebView2` (normally `%LOCALAPPDATA%\Packages\FusionLedger.Windows_*\LocalState\FusionLedger.WebView2` for a packaged install).
+- Only an exact HTTPS GET to the production `/api/me` is observed. Request headers, cookies, response headers and secrets are never read or logged.
+- The parser requires bounded JSON, a username, known status values (`pending`, `approved`, `rejected`, `suspended`), role values (`member`, `admin`) and optionally a bounded PNG data URI.
 
-The browser command/status row is a fixed 44px Grid surface containing standard WinUI `AppBarButton` controls. This preserves exact 40px targets, a 16px status icon and a responsive status region that a standard `CommandBar` could not guarantee without moving the status content into overflow. Alt+Left/Right, Ctrl+R and F5 are supported. A reserved 2px progress row keeps the WebView layout stable. Failures use a standard `InfoBar` with a manual Retry action that can navigate only to the configured production URL.
+## Security boundary
 
-## Build requirements
+The login WebView2 allows only `https://fusion-ledger.desase0175.workers.dev` as an in-app origin. External HTTP(S) and `mailto:` links are opened by Windows; popups are controlled, permissions are denied, DevTools/host objects/WebMessage are disabled, and certificate errors are not bypassed. No script, CSS, DOM or WebMessage bridge is injected or exposed.
 
-- .NET SDK 10.0.401
-- Visual Studio 2026 MSBuild 18.10
-- Windows SDK 10.0.28000.0
-- Microsoft.WindowsAppSDK 2.5.1
-- WebView2 1.0.3719.77 runtime
-
-## Build and test
+## Build and tests
 
 ```powershell
-dotnet restore .\FusionLedger.Windows.csproj --locked-mode
-dotnet build .\FusionLedger.Windows.csproj -c Debug -p:Platform=x64
-dotnet run --project .\tests\FusionLedger.Windows.PolicyTests\FusionLedger.Windows.PolicyTests.csproj
+dotnet restore
+dotnet run --project tests\FusionLedger.Windows.PolicyTests\FusionLedger.Windows.PolicyTests.csproj
+dotnet build FusionLedger.Windows.csproj -p:Platform=x64 -p:Configuration=Debug
+.
+Install-Prototype.ps1 -WhatIf
 ```
 
-The packaged prototype uses the standard Windows caption buttons. The MSIX output is intentionally unsigned for local development; no private key or certificate is stored in this repository. Its manifest publisher uses the Windows Developer Mode unsigned-package namespace (`CN=Fusion Ledger, OID.2.25.311729368913984317654407730594956997722=1`) so `Add-AppxPackage -AllowUnsigned` can deploy it locally. This publisher value is for the prototype only; a production signed package must remove the OID namespace suffix and use a publisher subject that exactly matches the trusted signing certificate.
+The build creates an unsigned MSIX under `AppPackages`. Do not install it in production. `Install-Prototype.ps1` is a developer-mode, `-AllowUnsigned` flow and must be run from PowerShell; double-click installation is not supported. A real distribution requires a trusted signing certificate and an appropriately signed package. Unsigned packages can trigger Windows SmartScreen warnings.
 
-## Installing the unsigned prototype
+## Current limitations
 
-Enable Windows Developer Mode first: **Settings > System > For developers > Developer Mode**. Then run PowerShell from this repository root:
+Dashboard, projects, commit history, server maintenance, settings, profile settings and administration are intentionally placeholders with no fake counts, cards, users or actions. Notifications show an honest not-connected preview; commit notifications are not implemented yet. Sign out opens the replacement LoginWindow first, clears cookies and site data through the active WebView2 profile, and only then closes MainWindow and navigates to login. A clear failure stays in a localized retry/close state and cannot auto-login with stale data. Sign out does not revoke the server-side session because no logout API call is made in this prototype. System tray/background notifications are also not part of v0.4.0.
 
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\Install-Prototype.ps1
-```
-
-The script accepts only a generated direct child matching `AppPackages\FusionLedger.Windows_*_x64_Debug_Test`, resolves it and its x64 dependency packages under the repository, and calls `Add-AppxPackage -AllowUnsigned`. It performs no cleanup or removal. `-WhatIf` validates the package and dependency paths without installing:
-
-```powershell
-.\Install-Prototype.ps1 -WhatIf
-```
-
-The generated `Add-AppDevPackage.ps1` is not the installation path for this prototype: it assumes a developer certificate/signing flow and is not suitable for this intentionally unsigned package. Double-click installation is not supported. This workflow is limited to Developer Mode on a development machine. Production distribution requires a trusted code-signing certificate and a signed MSIX; an unsigned package should not be distributed to end users.
-
-## WebView2 security boundary
-
-- Only `https://fusion-ledger.desase0175.workers.dev` is allowed as a top-level origin.
-- Other `http`, `https`, and `mailto` links are handed to the Windows default app.
-- `NewWindowRequested` is handled explicitly; no popup window is created.
-- WebView2 permission requests are denied by default.
-- Certificate errors are not overridden.
-- DevTools, host objects and WebMessage communication are disabled. No arbitrary host object or bridge is exposed.
-- Cookie state is stored under the packaged app's local application data in `FusionLedger.WebView2`.
-
-The native profile indicator listens only to WebView2's response event for an exact `GET https://fusion-ledger.desase0175.workers.dev/api/me` request. It never reads request headers or cookies, never logs response bodies, and caps the response before JSON parsing. Only `user.username` and a `data:image/png;base64,` avatar decoded to at most 32 KB are accepted. External image URLs and SVG are rejected. A `401`, `{ "user": null }`, or successful `/api/logout` or `/api/password` response clears the indicator. `ProfileResponseCoordinator` assigns a monotonically increasing generation at the start of every accepted `/api/me` response and applies data only when that generation is still current, so overlapping profile requests and session invalidation are latest-wins. No WebMessage, host object, or script bridge is exposed.
-
-Native UI uses the WinUI default Segoe UI Variable/system fallback. English and Japanese native strings are packaged in `Strings/en-US/Resources.resw` and `Strings/ja-JP/Resources.resw`; the WebView2 content keeps its own existing language and theme behavior. The window uses `MicaBackdrop` with the standard platform fallback, while the WebView surface remains opaque.
-
-## Scope
-
-Tray integration and commit notifications are intentionally not implemented in v0.3.0. The shell is structured so those capabilities can be added as separate services later without changing the navigation policy or exposing a renderer bridge.
-
-The provided Fusion Ledger icon is used by the package manifest. The WebView2 page is not modified with injected CSS or JavaScript.
+See [VERSION.md](VERSION.md), [CHANGELOG.md](CHANGELOG.md), and [DESIGN.md](DESIGN.md) for the design contract.

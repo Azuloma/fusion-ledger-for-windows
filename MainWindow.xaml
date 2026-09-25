@@ -2,197 +2,92 @@
     x:Class="FusionLedger.Windows.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="using:Microsoft.UI.Xaml.Controls">
-    <Grid x:Name="RootGrid"
-          Background="Transparent"
-          HighContrastAdjustment="Application">
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    Title="">
+    <Grid x:Name="RootGrid" Background="{ThemeResource FusionSurfaceBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="48" />
-            <RowDefinition Height="44" />
-            <RowDefinition Height="2" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid x:Name="AppTitleBar"
-              Grid.Row="0"
-              Height="48"
-              Padding="8,0,8,0"
-              Background="Transparent"
-              HighContrastAdjustment="Application">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="40" />
-                <ColumnDefinition Width="28" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="40" />
-            </Grid.ColumnDefinitions>
-
-            <Button x:Name="MenuButton"
-                    Grid.Column="0"
-                    Width="40"
-                    Height="40"
-                    Padding="0"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Click="MenuButton_Click"
-                    AutomationProperties.Name="Version information">
-                <SymbolIcon Symbol="GlobalNavigationButton" Width="20" Height="20" />
-                <Button.KeyboardAccelerators>
-                    <KeyboardAccelerator Key="I" Modifiers="Menu" Invoked="MenuKeyboardAccelerator_Invoked" />
-                </Button.KeyboardAccelerators>
-                <Button.Flyout>
-                    <Flyout Placement="BottomEdgeAlignedLeft">
-                        <Border Padding="16" MinWidth="256" Background="{ThemeResource FusionSurfaceBrush}">
-                            <StackPanel Spacing="12">
-                                <StackPanel Orientation="Horizontal" Spacing="12">
-                                    <Image Width="32" Height="32" Source="ms-appx:///Assets/fusion-ledger_ico.png" Stretch="UniformToFill" />
-                                    <StackPanel VerticalAlignment="Center" Spacing="4">
-                                        <TextBlock Text="Fusion Ledger for Windows" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="BETA" FontSize="12" LineHeight="16" Foreground="{ThemeResource FusionAccentBrush}" FontWeight="SemiBold" />
-                                    </StackPanel>
+        <controls:TitleBar x:Name="AppTitleBar"
+                           Grid.Row="0"
+                           Title=""
+                           Subtitle=""
+                           IsPaneToggleButtonVisible="True"
+                           IsBackButtonVisible="False"
+                           IsBackButtonEnabled="False"
+                           PaneToggleRequested="AppTitleBar_PaneToggleRequested"
+                           BackRequested="AppTitleBar_BackRequested"
+                           AutomationProperties.Name="">
+            <controls:TitleBar.Content>
+                <AutoSuggestBox x:Name="PageSearchBox"
+                                Width="280"
+                                MaxWidth="360"
+                                PlaceholderText=""
+                                QuerySubmitted="PageSearchBox_QuerySubmitted"
+                                TextChanged="PageSearchBox_TextChanged"
+                                AutomationProperties.Name="" />
+            </controls:TitleBar.Content>
+            <controls:TitleBar.RightHeader>
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <Button x:Name="NotificationsButton" Width="40" Height="40" Click="NotificationsButton_Click"
+                            ToolTipService.ToolTip="" AutomationProperties.Name="">
+                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEA8F;" FontSize="20" />
+                        <Button.Flyout>
+                            <Flyout x:Name="NotificationsFlyout" Placement="BottomEdgeAlignedRight">
+                                <StackPanel Width="360" Padding="20" Spacing="12">
+                                    <TextBlock x:Name="NotificationsHeader" Text="" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                    <TextBlock x:Name="NotificationsEmpty" Text="" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <TextBlock x:Name="VersionText" FontSize="14" TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                        </Border>
-                    </Flyout>
-                </Button.Flyout>
-            </Button>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button x:Name="ProfileButton" Width="40" Height="40" Click="ProfileButton_Click"
+                            ToolTipService.ToolTip="" AutomationProperties.Name="">
+                        <PersonPicture x:Name="ProfilePicture" Width="28" Height="28" DisplayName="" />
+                        <Button.Flyout>
+                            <Flyout x:Name="AccountFlyout" Placement="BottomEdgeAlignedRight">
+                                <StackPanel Width="300" Padding="20" Spacing="12">
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <PersonPicture x:Name="AccountPicture" Width="48" Height="48" />
+                                        <StackPanel>
+                                            <TextBlock x:Name="AccountName" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                            <TextBlock x:Name="AccountStatus" />
+                                            <TextBlock x:Name="AccountRole" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <Button x:Name="ProfileSettingsButton" Content="" Click="ProfileSettings_Click" />
+                                    <Button x:Name="AdministrationButton" Content="" Click="Administration_Click" />
+                                    <Button x:Name="SignOutButton" Content="" Click="SignOut_Click" />
+                                </StackPanel>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+            </controls:TitleBar.RightHeader>
+        </controls:TitleBar>
 
-            <Image Grid.Column="1"
-                   Width="20"
-                   Height="20"
-                   HorizontalAlignment="Left"
-                   VerticalAlignment="Center"
-                   Source="ms-appx:///Assets/fusion-ledger_ico.png"
-                   Stretch="UniformToFill" />
+        <NavigationView x:Name="Navigation"
+                        Grid.Row="1"
+                        PaneDisplayMode="Auto"
+                        IsBackButtonVisible="Collapsed"
+                        IsPaneToggleButtonVisible="False"
+                        IsSettingsVisible="False"
+                        SelectionChanged="Navigation_SelectionChanged"
+                        AutomationProperties.Name="">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="" Tag="Dashboard"><NavigationViewItem.Icon><SymbolIcon Symbol="Home" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem Content="" Tag="Projects"><NavigationViewItem.Icon><SymbolIcon Symbol="Folder" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem Content="" Tag="CommitHistory"><NavigationViewItem.Icon><SymbolIcon Symbol="Document" /></NavigationViewItem.Icon></NavigationViewItem>
+            </NavigationView.MenuItems>
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem x:Name="MaintenanceItem" Content="" Tag="ServerMaintenance"><NavigationViewItem.Icon><SymbolIcon Symbol="Repair" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem Content="" Tag="AppSettings"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem Content="" Tag="VersionInfo"><NavigationViewItem.Icon><SymbolIcon Symbol="Help" /></NavigationViewItem.Icon></NavigationViewItem>
+            </NavigationView.FooterMenuItems>
+            <Frame x:Name="ContentFrame" />
+        </NavigationView>
 
-            <TextBlock x:Name="TitleText"
-                       Grid.Column="2"
-                       Margin="12,0,10,0"
-                       VerticalAlignment="Center"
-                       FontSize="14"
-                       LineHeight="20"
-                       FontWeight="SemiBold"
-                       Text="Fusion Ledger for Windows"
-                       TextTrimming="CharacterEllipsis" />
-
-            <Border x:Name="BetaBadge"
-                    Grid.Column="3"
-                    Padding="8,0"
-                    Height="24"
-                    VerticalAlignment="Center"
-                    Background="{ThemeResource FusionAccentSubtleBrush}"
-                    CornerRadius="4">
-                <TextBlock x:Name="BetaText"
-                           Text="BETA"
-                           FontSize="12"
-                           LineHeight="16"
-                           VerticalAlignment="Center"
-                           Foreground="{ThemeResource FusionAccentBrush}"
-                           FontWeight="SemiBold"
-                           TextTrimming="CharacterEllipsis" />
-            </Border>
-
-            <Grid Grid.Column="4" IsHitTestVisible="False" />
-
-            <Border Grid.Column="5"
-                    Width="40"
-                    Height="40"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center">
-                <controls:PersonPicture x:Name="ProfilePicture"
-                                        Width="28"
-                                        Height="28"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        IsHitTestVisible="False"
-                                        IsTabStop="False"
-                                        DisplayName=""
-                                        AutomationProperties.Name="Signed-in user" />
-            </Border>
-        </Grid>
-
-        <Grid x:Name="BrowserCommandBar"
-              Grid.Row="1"
-              Height="44"
-              Padding="16,2"
-              Background="{ThemeResource FusionSurfaceBrush}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="40" />
-                <ColumnDefinition Width="40" />
-                <ColumnDefinition Width="40" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <AppBarButton x:Name="BackButton"
-                          Grid.Column="0"
-                          Width="40"
-                          Height="40"
-                          IsCompact="True"
-                          Click="BackButton_Click"
-                          AutomationProperties.Name="Back"
-                          ToolTipService.ToolTip="Go back">
-                <AppBarButton.Icon><SymbolIcon Symbol="Back" Width="20" Height="20" /></AppBarButton.Icon>
-                <AppBarButton.KeyboardAccelerators>
-                    <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="BackKeyboardAccelerator_Invoked" />
-                </AppBarButton.KeyboardAccelerators>
-            </AppBarButton>
-            <AppBarButton x:Name="ForwardButton"
-                          Grid.Column="1"
-                          Width="40"
-                          Height="40"
-                          IsCompact="True"
-                          Click="ForwardButton_Click"
-                          AutomationProperties.Name="Forward"
-                          ToolTipService.ToolTip="Go forward">
-                <AppBarButton.Icon><SymbolIcon Symbol="Forward" Width="20" Height="20" /></AppBarButton.Icon>
-                <AppBarButton.KeyboardAccelerators>
-                    <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="ForwardKeyboardAccelerator_Invoked" />
-                </AppBarButton.KeyboardAccelerators>
-            </AppBarButton>
-            <AppBarButton x:Name="ReloadButton"
-                          Grid.Column="2"
-                          Width="40"
-                          Height="40"
-                          IsCompact="True"
-                          Click="ReloadButton_Click"
-                          AutomationProperties.Name="Refresh"
-                          ToolTipService.ToolTip="Refresh page">
-                <AppBarButton.Icon><SymbolIcon Symbol="Refresh" Width="20" Height="20" /></AppBarButton.Icon>
-                <AppBarButton.KeyboardAccelerators>
-                    <KeyboardAccelerator Key="R" Modifiers="Control" Invoked="ReloadKeyboardAccelerator_Invoked" />
-                    <KeyboardAccelerator Key="F5" Invoked="ReloadKeyboardAccelerator_Invoked" />
-                </AppBarButton.KeyboardAccelerators>
-            </AppBarButton>
-            <StackPanel x:Name="StatusRegion"
-                        Grid.Column="3"
-                        Orientation="Horizontal"
-                        Spacing="8"
-                        Margin="12,0,0,0"
-                        VerticalAlignment="Center"
-                        SizeChanged="StatusRegion_SizeChanged"
-                        AutomationProperties.LiveSetting="Polite">
-                <SymbolIcon x:Name="StatusIcon" Symbol="Sync" Width="16" Height="16" AutomationProperties.Name="Connection status" />
-                <TextBlock x:Name="StatusText" FontSize="12" LineHeight="16" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
-        </Grid>
-
-        <ProgressBar x:Name="LoadingBar"
-                     Grid.Row="2"
-                     Height="2"
-                     IsIndeterminate="False"
-                     IsHitTestVisible="False" />
-
-        <controls:InfoBar x:Name="StateInfoBar"
-                          Grid.Row="3"
-                          IsOpen="False"
-                          IsClosable="False"
-                          IsIconVisible="True"
-                          Severity="Warning" />
-
-        <Border Grid.Row="4" Background="{ThemeResource FusionSurfaceBrush}">
-            <controls:WebView2 x:Name="Browser" />
-        </Border>
     </Grid>
 </Window>

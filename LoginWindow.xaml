@@ -1,0 +1,22 @@
+<Window
+    x:Class="FusionLedger.Windows.LoginWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:wv2="using:Microsoft.UI.Xaml.Controls"
+    Title="">
+    <Grid RowSpacing="12" Padding="24" Background="{ThemeResource FusionSurfaceBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="LoginTitle" Text="" Style="{StaticResource TitleTextBlockStyle}" />
+        <TextBlock x:Name="LoginStatus" Grid.Row="1" Text="" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        <StackPanel x:Name="SessionRecoveryPanel" Grid.Row="2" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
+            <Button x:Name="ResetSessionButton" Content="" Click="ResetSessionButton_Click" />
+            <Button x:Name="CloseSessionButton" Content="" Click="CloseSessionButton_Click" />
+        </StackPanel>
+        <wv2:WebView2 x:Name="LoginWebView" Grid.Row="3" AutomationProperties.Name="" />
+    </Grid>
+</Window>

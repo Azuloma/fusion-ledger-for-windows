@@ -2,11 +2,15 @@
 
 ## Scope
 
-v0.4.0 is a native WinUI 3 shell and login-only prototype. The web application is used solely as the authentication surface in LoginWindow. MainWindow is not a browser wrapper and contains no WebView2.
+v0.4.1 is a native WinUI 3 shell and login-only prototype. The web application is used solely as the authentication surface in LoginWindow. MainWindow is not a browser wrapper and contains no WebView2.
 
 ## Window and title bar
 
 MainWindow extends content into the native title bar and calls `SetTitleBar(AppTitleBar)` with the Windows App SDK `Microsoft.UI.Xaml.Controls.TitleBar` control. The control owns caption buttons, drag behavior, snap, and Alt+Space. It displays Fusion Ledger/Beta, a local page AutoSuggestBox, notifications, and a non-interactive PersonPicture account affordance. The TitleBar back button is only visible for nested native pages.
+
+The TitleBar is 48px high with centered content. The local search box is 32px high and remains visible at every width; its width is applied from the actual client width on load and resize: 96px below 600px, 200px at 600–899px, 320px at 900–1199px, 420px at 1200–1599px, and 540px at 1600px or wider. The right header uses centered 32px transparent circular buttons with standard WinUI focus/hover states; caption-button spacing and insets remain owned by the TitleBar template. Root-level shortcut behavior remains available while placement hints are hidden; Ctrl+K belongs to the search control.
+
+The account flyout is a 320px-wide, 440px-maximum-height standard Flyout. Its identity block contains only the authenticated username, localized status/role and validated avatar, followed by a separator and full-width 44px-minimum rows for profile settings, role-gated administration and sign out. Icons are Segoe Fluent controls and decorative icon access is hidden from automation.
 
 ## Native navigation
 

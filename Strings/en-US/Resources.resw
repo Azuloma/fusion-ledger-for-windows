@@ -10,6 +10,7 @@
   <data name="SearchPages"><value>Search pages</value></data>
   <data name="Notifications"><value>Notifications</value></data>
   <data name="Account"><value>Account</value></data>
+  <data name="AccountMenuForFormat"><value>Account menu for {0}</value></data>
   <data name="AccountStatusFormat"><value>Status: {0}</value></data>
   <data name="AccountRoleFormat"><value>Role: {0}</value></data>
   <data name="Status_pending"><value>Pending</value></data>

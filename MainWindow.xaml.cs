@@ -51,9 +51,10 @@ public sealed partial class MainWindow : Window
         AutomationProperties.SetName(PageSearchBox, L("SearchPages"));
         AutomationProperties.SetName(Navigation, L("NavigationName"));
         ToolTipService.SetToolTip(NotificationsButton, L("Notifications"));
-        ToolTipService.SetToolTip(ProfileButton, L("Account"));
+        var accountMenuName = string.Format(L("AccountMenuForFormat"), _user.Username);
+        ToolTipService.SetToolTip(ProfileButton, accountMenuName);
         AutomationProperties.SetName(NotificationsButton, L("Notifications"));
-        AutomationProperties.SetName(ProfileButton, L("Account"));
+        AutomationProperties.SetName(ProfileButton, accountMenuName);
         NotificationsHeader.Text = L("Notifications");
         NotificationsEmpty.Text = L("NotConnected");
         AccountName.Text = _user.Username;
@@ -63,12 +64,28 @@ public sealed partial class MainWindow : Window
         {
             if (TryParsePage(item.Tag as string, out var page)) item.Content = L("Page_" + NativePageCatalog.SearchKey(page));
         }
-        AdministrationButton.Content = L("Administration");
-        ProfileSettingsButton.Content = L("ProfileSettings");
-        SignOutButton.Content = L("SignOut");
+        AdministrationLabel.Text = L("Administration");
+        ProfileSettingsLabel.Text = L("ProfileSettings");
+        SignOutLabel.Text = L("SignOut");
         AutomationProperties.SetName(ProfileSettingsButton, L("ProfileSettings"));
         AutomationProperties.SetName(AdministrationButton, L("Administration"));
         AutomationProperties.SetName(SignOutButton, L("SignOut"));
+    }
+
+    private void RootGrid_Loaded(object sender, RoutedEventArgs e)
+    {
+        ApplySearchWidth(RootGrid.ActualWidth);
+    }
+
+    private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ApplySearchWidth(e.NewSize.Width);
+    }
+
+    private void ApplySearchWidth(double clientWidth)
+    {
+        PageSearchBox.Width = TitleBarLayoutPolicy.SearchWidthForClient(clientWidth);
+        PageSearchBox.Visibility = Visibility.Visible;
     }
 
     private void ConfigureProfile()
@@ -105,11 +122,6 @@ public sealed partial class MainWindow : Window
 
     private void ConfigureAccelerators()
     {
-        AddAccelerator(global::Windows.System.VirtualKey.K, global::Windows.System.VirtualKeyModifiers.Control, (_, e) =>
-        {
-            PageSearchBox.Focus(FocusState.Keyboard);
-            e.Handled = true;
-        });
         // Windows.System.VirtualKey does not name OEM comma; 0xBC is VK_OEM_COMMA (Ctrl+,).
         AddAccelerator((global::Windows.System.VirtualKey)0xBC, global::Windows.System.VirtualKeyModifiers.Control, (_, e) =>
         {
@@ -126,6 +138,12 @@ public sealed partial class MainWindow : Window
             GoBack();
             e.Handled = true;
         });
+    }
+
+    private void PageSearchKeyboardAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        PageSearchBox.Focus(FocusState.Keyboard);
+        args.Handled = true;
     }
 
     private void AddAccelerator(global::Windows.System.VirtualKey key, global::Windows.System.VirtualKeyModifiers modifiers,
@@ -175,7 +193,7 @@ public sealed partial class MainWindow : Window
         panel.Children.Add(new TextBlock { Text = L("NotConnected"), TextWrapping = TextWrapping.Wrap });
         if (page == NativePage.VersionInfo)
         {
-            var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.4.0";
+            var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.4.1";
             panel.Children.Add(new TextBlock { Text = string.Format(L("VersionFormat"), $"v{version}") });
         }
         return panel;

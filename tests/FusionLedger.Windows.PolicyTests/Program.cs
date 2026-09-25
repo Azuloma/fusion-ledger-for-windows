@@ -49,7 +49,41 @@ Assert(mainXaml.Contains("controls:TitleBar", StringComparison.Ordinal), "MainWi
 Assert(mainXaml.Contains("PaneToggleRequested", StringComparison.Ordinal) && mainXaml.Contains("BackRequested", StringComparison.Ordinal), "TitleBar events must be wired.");
 Assert(mainXaml.Contains("NavigationView", StringComparison.Ordinal) && mainXaml.Contains("FooterMenuItems", StringComparison.Ordinal), "Native navigation must expose footer items.");
 Assert(mainXaml.Contains("IsPaneToggleButtonVisible=\"False\"", StringComparison.Ordinal), "NavigationView pane toggle must be controlled by TitleBar only.");
+Assert(mainXaml.Contains("Height=\"48\"", StringComparison.Ordinal) && mainXaml.Contains("VerticalContentAlignment=\"Center\"", StringComparison.Ordinal), "TitleBar must use centered 48px alignment.");
+Assert(mainXaml.Contains("Height=\"32\"", StringComparison.Ordinal) && mainXaml.Contains("MinWidth=\"96\"", StringComparison.Ordinal) && mainXaml.Contains("MaxWidth=\"540\"", StringComparison.Ordinal), "Page search must use the bounded runtime size.");
+Assert(mainXaml.Contains("SizeChanged=\"RootGrid_SizeChanged\"", StringComparison.Ordinal)
+    && mainXaml.Contains("Loaded=\"RootGrid_Loaded\"", StringComparison.Ordinal)
+    && mainCode.Contains("TitleBarLayoutPolicy.SearchWidthForClient", StringComparison.Ordinal)
+    && !mainXaml.Contains("WindowWidthStates", StringComparison.Ordinal), "Page search width must follow actual client-size events, not VisualStates.");
+Assert(TitleBarLayoutPolicy.SearchWidthForClient(1906) == 540
+    && TitleBarLayoutPolicy.SearchWidthForClient(1600) == 540
+    && TitleBarLayoutPolicy.SearchWidthForClient(1200) == 420
+    && TitleBarLayoutPolicy.SearchWidthForClient(900) == 320
+    && TitleBarLayoutPolicy.SearchWidthForClient(600) == 200
+    && TitleBarLayoutPolicy.SearchWidthForClient(599) == 96, "Runtime search width policy must match all target ranges.");
+Assert(mainXaml.Contains("Spacing=\"12\" VerticalAlignment=\"Center\"", StringComparison.Ordinal), "TitleBar right header must be centered with 12px spacing.");
+Assert(mainXaml.Contains("KeyboardAcceleratorPlacementMode=\"Hidden\"", StringComparison.Ordinal), "Root shortcut placement hints must be hidden.");
+Assert(mainXaml.Contains("Background=\"Transparent\"", StringComparison.Ordinal) && mainXaml.Contains("CornerRadius=\"16\"", StringComparison.Ordinal), "TitleBar action buttons must be transparent circular chrome.");
+Assert(mainXaml.Contains("Glyph=\"&#xEA8F;\"", StringComparison.Ordinal) && mainXaml.Contains("Width=\"20\"", StringComparison.Ordinal), "Notifications must retain the Segoe Fluent Ringer glyph.");
+Assert(mainXaml.Contains("Glyph=\"&#xEA8F;\" FontSize=\"18\" AutomationProperties.AccessibilityView=\"Raw\"", StringComparison.Ordinal)
+    && mainXaml.Contains("x:Name=\"ProfilePicture\"", StringComparison.Ordinal)
+    && mainXaml.Contains("DisplayName=\"\" AutomationProperties.AccessibilityView=\"Raw\"", StringComparison.Ordinal), "Decorative title-bar icon and avatar must be hidden from the accessibility tree.");
+Assert(mainXaml.Contains("Width=\"320\" MaxHeight=\"440\"", StringComparison.Ordinal) && mainXaml.Contains("AccountSeparator", StringComparison.Ordinal), "Account flyout must have bounded identity/separator structure.");
+Assert(mainXaml.Contains("x:Name=\"PageSearchBox\"", StringComparison.Ordinal)
+    && mainXaml.Contains("<KeyboardAccelerator Key=\"K\" Modifiers=\"Control\"", StringComparison.Ordinal)
+    && mainXaml.Contains("PageSearchKeyboardAccelerator_Invoked", StringComparison.Ordinal)
+    && !mainCode.Contains("AddAccelerator(global::Windows.System.VirtualKey.K", StringComparison.Ordinal), "Ctrl+K must belong to the search box, not the root grid.");
+Assert(mainCode.Contains("VirtualKey.N", StringComparison.Ordinal)
+    && mainCode.Contains("VirtualKey.Left", StringComparison.Ordinal)
+    && mainCode.Contains("VK_OEM_COMMA", StringComparison.Ordinal), "Non-search root shortcuts must remain defined.");
+Assert(mainXaml.Contains("x:Name=\"NotificationsButton\" Width=\"32\" Height=\"32\"", StringComparison.Ordinal)
+    && mainXaml.Contains("CornerRadius=\"6\"", StringComparison.Ordinal)
+    && mainXaml.Contains("x:Name=\"ProfileButton\" Width=\"32\" Height=\"32\"", StringComparison.Ordinal)
+    && mainXaml.Contains("CornerRadius=\"16\"", StringComparison.Ordinal), "Notification/profile button corner radii must follow their visual roles.");
+Assert(mainXaml.IndexOf("ProfileSettingsButton", StringComparison.Ordinal) < mainXaml.IndexOf("AdministrationButton", StringComparison.Ordinal)
+    && mainXaml.IndexOf("AdministrationButton", StringComparison.Ordinal) < mainXaml.IndexOf("SignOutButton", StringComparison.Ordinal), "Account rows must retain profile/admin/sign-out order.");
 Assert(!mainXaml.Contains("WebView2", StringComparison.Ordinal) && !mainCode.Contains("WebView2", StringComparison.Ordinal), "MainWindow must not host WebView2.");
+Assert(mainCode.Contains("?? \"0.4.1\"", StringComparison.Ordinal) && !mainCode.Contains("?? \"0.4.0\"", StringComparison.Ordinal), "Version fallback must match the current v0.4.1 release.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 foreach (var source in new[] { mainXaml, mainCode, loginXaml, loginCode })
 {
@@ -61,6 +95,7 @@ Assert(!mainCode.Contains("RightInset", StringComparison.Ordinal) && !mainCode.C
 Assert(!mainCode.Contains("fake", StringComparison.OrdinalIgnoreCase) && !mainXaml.Contains("fake", StringComparison.OrdinalIgnoreCase), "Native shell must not contain fake data.");
 Assert(!loginXaml.Contains("Fusion Ledger sign in", StringComparison.Ordinal) && !loginXaml.Contains("Sign in to continue", StringComparison.Ordinal), "Login user-facing strings must come from resources.");
 Assert(!mainXaml.Contains("Notifications\"", StringComparison.Ordinal) && !mainXaml.Contains("Profile settings\"", StringComparison.Ordinal), "MainWindow user-facing strings must come from resources.");
+Assert(!mainXaml.Contains("email", StringComparison.OrdinalIgnoreCase) && !mainXaml.Contains("raw id", StringComparison.OrdinalIgnoreCase) && !mainXaml.Contains("token", StringComparison.OrdinalIgnoreCase), "Account flyout must not expose fake email/id/token data.");
 Assert(loginCode.Contains("DeleteAllCookies", StringComparison.Ordinal), "Sign out must clear cookies through the active WebView2 profile.");
 Assert(loginCode.Contains("ClearBrowsingDataAsync", StringComparison.Ordinal), "Sign out must clear profile browsing data through WebView2.");
 Assert(loginCode.Contains("ShowSessionRecoveryError", StringComparison.Ordinal) && loginCode.Contains("SessionClearError", StringComparison.Ordinal), "Clear failure must remain in a localized retry/close state.");
@@ -76,13 +111,16 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.4.0</Version>", StringComparison.Ordinal), "Version source of truth must be v0.4.0.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.4.0.0\"", StringComparison.Ordinal), "Manifest version must be v0.4.0.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.4.1</Version>", StringComparison.Ordinal), "Version source of truth must be v0.4.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.4.1.0\"", StringComparison.Ordinal), "Manifest version must be v0.4.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.4.1", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.4.1", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
-    Assert(resource.Contains("NotConnected", StringComparison.Ordinal) && resource.Contains("Page_Dashboard", StringComparison.Ordinal), $"Localization resources are incomplete: {locale}");
+    Assert(resource.Contains("NotConnected", StringComparison.Ordinal) && resource.Contains("Page_Dashboard", StringComparison.Ordinal)
+        && resource.Contains("AccountMenuForFormat", StringComparison.Ordinal), $"Localization resources are incomplete: {locale}");
 }
 Assert(!File.Exists(Path.Combine(sourceRoot, "Assets", "Fonts", "MonaSans.ttf")), "Native Mona Sans binary must remain absent.");
 
-Console.WriteLine("v0.4 native shell, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+Console.WriteLine("v0.4.1 native shell, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

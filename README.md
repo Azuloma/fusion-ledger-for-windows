@@ -1,4 +1,4 @@
-# Fusion Ledger for Windows v0.4.0
+# Fusion Ledger for Windows v0.4.1
 
 This is a native-first WinUI 3 prototype. The app starts with a dedicated `LoginWindow` containing the WebView2 sign-in surface. After a verified production `/api/me` response, that window closes and the authenticated native `MainWindow` opens. The MainWindow is deliberately disconnected page scaffolding; it does not embed the web application.
 
@@ -28,6 +28,6 @@ The build creates an unsigned MSIX under `AppPackages`. Do not install it in pro
 
 ## Current limitations
 
-Dashboard, projects, commit history, server maintenance, settings, profile settings and administration are intentionally placeholders with no fake counts, cards, users or actions. Notifications show an honest not-connected preview; commit notifications are not implemented yet. Sign out opens the replacement LoginWindow first, clears cookies and site data through the active WebView2 profile, and only then closes MainWindow and navigates to login. A clear failure stays in a localized retry/close state and cannot auto-login with stale data. Sign out does not revoke the server-side session because no logout API call is made in this prototype. System tray/background notifications are also not part of v0.4.0.
+Dashboard, projects, commit history, server maintenance, settings, profile settings and administration are intentionally placeholders with no fake counts, cards, users or actions. Notifications show an honest not-connected preview; commit notifications are not implemented yet. Sign out opens the replacement LoginWindow first, clears cookies and site data through the active WebView2 profile, and only then closes MainWindow and navigates to login. A clear failure stays in a localized retry/close state and cannot auto-login with stale data. Sign out does not revoke the server-side session because no logout API call is made in this prototype. System tray/background notifications are also not part of v0.4.1.
 
 See [VERSION.md](VERSION.md), [CHANGELOG.md](CHANGELOG.md), and [DESIGN.md](DESIGN.md) for the design contract.

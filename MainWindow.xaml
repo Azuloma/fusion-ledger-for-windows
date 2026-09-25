@@ -4,7 +4,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     Title="">
-    <Grid x:Name="RootGrid" Background="{ThemeResource FusionSurfaceBrush}">
+    <Grid x:Name="RootGrid" Background="{ThemeResource FusionSurfaceBrush}"
+          SizeChanged="RootGrid_SizeChanged" Loaded="RootGrid_Loaded"
+          KeyboardAcceleratorPlacementMode="Hidden">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -12,6 +14,8 @@
 
         <controls:TitleBar x:Name="AppTitleBar"
                            Grid.Row="0"
+                           Height="48"
+                           VerticalContentAlignment="Center"
                            Title=""
                            Subtitle=""
                            IsPaneToggleButtonVisible="True"
@@ -22,18 +26,28 @@
                            AutomationProperties.Name="">
             <controls:TitleBar.Content>
                 <AutoSuggestBox x:Name="PageSearchBox"
-                                Width="280"
-                                MaxWidth="360"
+                                Width="96"
+                                Height="32"
+                                MinWidth="96"
+                                MaxWidth="540"
+                                Visibility="Visible"
+                                VerticalAlignment="Center"
                                 PlaceholderText=""
                                 QuerySubmitted="PageSearchBox_QuerySubmitted"
                                 TextChanged="PageSearchBox_TextChanged"
-                                AutomationProperties.Name="" />
+                                AutomationProperties.Name="">
+                    <AutoSuggestBox.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="K" Modifiers="Control" Invoked="PageSearchKeyboardAccelerator_Invoked" />
+                    </AutoSuggestBox.KeyboardAccelerators>
+                </AutoSuggestBox>
             </controls:TitleBar.Content>
             <controls:TitleBar.RightHeader>
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <Button x:Name="NotificationsButton" Width="40" Height="40" Click="NotificationsButton_Click"
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button x:Name="NotificationsButton" Width="32" Height="32" MinWidth="32" MinHeight="32"
+                            VerticalAlignment="Center" Background="Transparent" BorderBrush="Transparent"
+                            BorderThickness="0" Padding="0" CornerRadius="6" Click="NotificationsButton_Click"
                             ToolTipService.ToolTip="" AutomationProperties.Name="">
-                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEA8F;" FontSize="20" />
+                        <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEA8F;" FontSize="18" AutomationProperties.AccessibilityView="Raw" />
                         <Button.Flyout>
                             <Flyout x:Name="NotificationsFlyout" Placement="BottomEdgeAlignedRight">
                                 <StackPanel Width="360" Padding="20" Spacing="12">
@@ -43,24 +57,60 @@
                             </Flyout>
                         </Button.Flyout>
                     </Button>
-                    <Button x:Name="ProfileButton" Width="40" Height="40" Click="ProfileButton_Click"
+                    <Button x:Name="ProfileButton" Width="32" Height="32" MinWidth="32" MinHeight="32"
+                            VerticalAlignment="Center" Background="Transparent" BorderBrush="Transparent"
+                            BorderThickness="0" Padding="0" CornerRadius="16" Click="ProfileButton_Click"
                             ToolTipService.ToolTip="" AutomationProperties.Name="">
-                        <PersonPicture x:Name="ProfilePicture" Width="28" Height="28" DisplayName="" />
+                        <PersonPicture x:Name="ProfilePicture" Width="28" Height="28" DisplayName="" AutomationProperties.AccessibilityView="Raw" />
                         <Button.Flyout>
                             <Flyout x:Name="AccountFlyout" Placement="BottomEdgeAlignedRight">
-                                <StackPanel Width="300" Padding="20" Spacing="12">
-                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Grid Width="320" MaxHeight="440">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid Grid.Row="0" Padding="16" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="48" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
                                         <PersonPicture x:Name="AccountPicture" Width="48" Height="48" />
-                                        <StackPanel>
-                                            <TextBlock x:Name="AccountName" Style="{StaticResource SubtitleTextBlockStyle}" />
-                                            <TextBlock x:Name="AccountStatus" />
-                                            <TextBlock x:Name="AccountRole" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock x:Name="AccountName" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock x:Name="AccountStatus" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock x:Name="AccountRole" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
-                                    </StackPanel>
-                                    <Button x:Name="ProfileSettingsButton" Content="" Click="ProfileSettings_Click" />
-                                    <Button x:Name="AdministrationButton" Content="" Click="Administration_Click" />
-                                    <Button x:Name="SignOutButton" Content="" Click="SignOut_Click" />
-                                </StackPanel>
+                                    </Grid>
+                                    <Border x:Name="AccountSeparator" Grid.Row="1" Height="1" Margin="16,0"
+                                            Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                    <Button x:Name="ProfileSettingsButton" Grid.Row="2" MinHeight="44" Padding="12"
+                                            Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch"
+                                            Click="ProfileSettings_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <SymbolIcon Symbol="Contact" Width="20" Height="20" AutomationProperties.AccessibilityView="Raw" />
+                                            <TextBlock x:Name="ProfileSettingsLabel" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="AdministrationButton" Grid.Row="3" MinHeight="44" Padding="12"
+                                            Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch"
+                                            Click="Administration_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <FontIcon Glyph="&#xE7EF;" FontFamily="{StaticResource SymbolThemeFontFamily}" FontSize="20" AutomationProperties.AccessibilityView="Raw" />
+                                            <TextBlock x:Name="AdministrationLabel" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="SignOutButton" Grid.Row="4" MinHeight="44" Padding="12"
+                                            Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch"
+                                            Click="SignOut_Click">
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <SymbolIcon Symbol="LeaveChat" Width="20" Height="20" AutomationProperties.AccessibilityView="Raw" />
+                                            <TextBlock x:Name="SignOutLabel" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
                             </Flyout>
                         </Button.Flyout>
                     </Button>

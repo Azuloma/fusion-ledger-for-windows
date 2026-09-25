@@ -10,6 +10,7 @@
   <data name="SearchPages"><value>ページを検索</value></data>
   <data name="Notifications"><value>通知</value></data>
   <data name="Account"><value>アカウント</value></data>
+  <data name="AccountMenuForFormat"><value>{0} のアカウントメニュー</value></data>
   <data name="AccountStatusFormat"><value>状態: {0}</value></data>
   <data name="AccountRoleFormat"><value>役職: {0}</value></data>
   <data name="Status_pending"><value>承認待ち</value></data>

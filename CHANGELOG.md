@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.4.1
+
+- Refined the native TitleBar alignment and responsive search sizing.
+- Kept page search visible at narrow widths with staged 96/180/280px states and moved Ctrl+K ownership to the search box.
+- Reduced the notification glyph and changed only its hover hit surface to a rounded rectangle while retaining the circular profile action.
+- Replaced adaptive search VisualStates with client-size-driven 96/200/320/420/540px sizing and hid root accelerator placement hints without removing shortcuts.
+- Added transparent circular notification/account actions with standard focus and hover behavior.
+- Restructured the account flyout into an identity block, separator and accessible menu rows.
+- Localized account-menu automation names and retained role-based administration visibility.
+
 ## v0.4.0
 
 - Replaced the browser-wrapper MainWindow with a native WinUI 3 shell.

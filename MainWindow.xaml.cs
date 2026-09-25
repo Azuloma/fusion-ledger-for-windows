@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Windowing;
 using System.Collections.ObjectModel;
@@ -114,7 +113,7 @@ public sealed partial class MainWindow : Window
     {
         ApplySearchWidth(RootGrid.ActualWidth);
         if (_initialNavigationCompleted) return;
-        // Let NavigationView finish its initial selection/layout before Frame.Navigate runs.
+        // Let NavigationView finish its initial selection/layout before showing the first page.
         _initialNavigationCompleted = true;
         NavigateTo(NativePage.Dashboard, false);
     }
@@ -212,8 +211,7 @@ public sealed partial class MainWindow : Window
     {
         if (remember && page != _currentPage) _history.Push(_currentPage);
         _currentPage = page;
-        ContentFrame.Navigate(typeof(NativeContentPage), CreatePlaceholder(page), new EntranceNavigationTransitionInfo());
-        ContentFrame.BackStack.Clear();
+        ContentFrame.Content = CreatePlaceholder(page);
         AppTitleBar.IsBackButtonVisible = NativePageCatalog.IsNested(page);
         AppTitleBar.IsBackButtonEnabled = _history.Count > 0;
         SyncNavigationSelection(page);

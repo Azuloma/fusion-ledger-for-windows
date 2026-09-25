@@ -1,9 +1,14 @@
 # Changelog
 
+## v0.5.2
+
+- Fixed the post-login access violation by replacing `Frame.Navigate` with `ContentControl` content updates and `EntranceThemeTransition` animations.
+
 ## v0.5.1
 
-- Fixed a crash after successful login by deferring initial page navigation until the shell loads and preventing reentrant selection changes.
-- Moved the standard NavigationView toggle onto the Dashboard, set its expanded width to 240 DIP, and added EntranceNavigationTransitionInfo animations for section changes.
+- Moved the standard NavigationView toggle onto the Dashboard and set the expanded pane width to 240 DIP.
+- Added `EntranceNavigationTransitionInfo` animations for section changes.
+- Deferred initial page navigation until the shell loaded and guarded against reentrant selection updates; the post-login access violation remained unresolved.
 
 ## v0.5.0
 

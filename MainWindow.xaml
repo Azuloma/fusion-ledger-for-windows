@@ -135,7 +135,13 @@
                 <NavigationViewItem Content="" Tag="AppSettings"><NavigationViewItem.Icon><SymbolIcon Symbol="Setting" /></NavigationViewItem.Icon></NavigationViewItem>
                 <NavigationViewItem Content="" Tag="VersionInfo"><NavigationViewItem.Icon><SymbolIcon Symbol="Help" /></NavigationViewItem.Icon></NavigationViewItem>
             </NavigationView.FooterMenuItems>
-            <Frame x:Name="ContentFrame" />
+            <ContentControl x:Name="ContentFrame">
+                <ContentControl.ContentTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="40" />
+                    </TransitionCollection>
+                </ContentControl.ContentTransitions>
+            </ContentControl>
         </NavigationView>
 
     </Grid>

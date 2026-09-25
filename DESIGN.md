@@ -2,7 +2,7 @@
 
 ## Scope
 
-v0.5.1 is a native WinUI 3 shell and login-only prototype. The web application is used solely as the authentication surface in LoginWindow. MainWindow is not a browser wrapper and contains no WebView2.
+v0.5.2 is a native WinUI 3 shell and login-only prototype. The web application is used solely as the authentication surface in LoginWindow. MainWindow is not a browser wrapper and contains no WebView2.
 
 ## Window and title bar
 

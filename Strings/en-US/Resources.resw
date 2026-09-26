@@ -32,7 +32,7 @@
   <data name="ProfileSettings"><value>Profile settings</value></data>
   <data name="Administration"><value>Administration</value></data>
   <data name="SignOut"><value>Sign out</value></data>
-  <data name="SignInPrompt"><value>Sign in to continue.</value></data>
+  <data name="PleaseWait"><value>Please wait…</value></data>
   <data name="SignInRequired"><value>Sign in is required to continue.</value></data>
   <data name="SigningOut"><value>Clearing local sign-in data…</value></data>
   <data name="SessionClearError"><value>Local sign-in data could not be cleared. Retry or close this window.</value></data>

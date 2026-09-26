@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.6.1
+
+- Made the sign-in window a compact dialog: a 481 x 683 DIP client area (32 DIP title bar with only a close button, no title text or icon) scaled for the monitor's DPI, clamped to its work area and centered. The window can no longer be resized, maximized or minimized.
+- The web sign-in surface now fills the window. A centered progress ring with "Please wait…" covers it until the first page load completes; sign-out and recovery states use the same overlay.
+
 ## v0.6.0
 
 - Renamed the user-facing product from Fusion Ledger for Windows to MolHub for Windows in the package display names, window and title-bar text, accessibility names and installer messages. The package identity, namespace and WebView2 profile folder are unchanged so upgrades keep sign-in data and settings.

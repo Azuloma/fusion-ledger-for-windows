@@ -1,6 +1,6 @@
 # MolHub for Windows
 
-A native-first Windows client for MolHub (formerly Fusion Ledger), built with WinUI 3. Current version: **v0.6.0** (beta prototype).
+A native-first Windows client for MolHub (formerly Fusion Ledger), built with WinUI 3. Current version: **v0.6.1** (beta prototype).
 
 The app opens a sign-in window that hosts the existing MolHub web login in WebView2. Once the production `/api/me` response confirms the signed-in user, the sign-in window closes and a native main window opens. The main window is a WinUI shell, not a wrapper around the web application.
 
@@ -43,8 +43,8 @@ dotnet build FusionLedger.Windows.csproj -p:Platform=x64 -p:Configuration=Debug
 Use Windows PowerShell 5.1 or later. First enable **Settings > System > For developers > Developer Mode**. Then check and install the package you built:
 
 ```powershell
-.\Install-Prototype.ps1 -WhatIf -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.6.0.0_x64_Debug_Test"
-.\Install-Prototype.ps1 -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.6.0.0_x64_Debug_Test"
+.\Install-Prototype.ps1 -WhatIf -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.6.1.0_x64_Debug_Test"
+.\Install-Prototype.ps1 -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.6.1.0_x64_Debug_Test"
 ```
 
 - `-WhatIf` only checks that the package and its x64 dependency packages are present; nothing is installed.
@@ -57,6 +57,7 @@ This package is unsigned and meant for development only. Windows SmartScreen may
 ## How it works
 
 - **Packaging:** packaged WinUI 3 desktop app for x64, using Microsoft.WindowsAppSDK 2.5.1 and Microsoft.Web.WebView2.
+- **Sign-in window:** a compact, fixed-size dialog with a 481 × 683 DIP client area (32 DIP title bar with only a close button). It scales with the monitor's DPI, stays inside the work area and opens centered; a progress ring covers the web view until the first page load.
 - **Windows:** `LoginWindow` is the only window that creates WebView2. `MainWindow` is fully native and changes pages by replacing the content of `ContentFrame`.
 - **Sign-in data:** the WebView2 profile is stored at `ApplicationData.Current.LocalFolder\FusionLedger.WebView2`. For an installed package this is normally `%LOCALAPPDATA%\Packages\FusionLedger.Windows_*\LocalState\FusionLedger.WebView2`.
 - **User details:** the app reads only an exact HTTPS `GET /api/me` response. It accepts bounded JSON with a username, a known status (`pending`, `approved`, `rejected`, `suspended`) and role (`member`, `admin`), plus an optional small PNG avatar.
@@ -77,4 +78,4 @@ This package is unsigned and meant for development only. Windows SmartScreen may
 
 ## Versioning
 
-The `<Version>` element in `FusionLedger.Windows.csproj` defines the app version. `Package.appxmanifest` uses the matching four-part package version (for example `0.6.0.0`). See [VERSION.md](VERSION.md) for the policy and [CHANGELOG.md](CHANGELOG.md) for release notes.
+The `<Version>` element in `FusionLedger.Windows.csproj` defines the app version. `Package.appxmanifest` uses the matching four-part package version (for example `0.6.1.0`). See [VERSION.md](VERSION.md) for the policy and [CHANGELOG.md](CHANGELOG.md) for release notes.

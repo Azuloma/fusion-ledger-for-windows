@@ -2,21 +2,39 @@
     x:Class="FusionLedger.Windows.LoginWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:wv2="using:Microsoft.UI.Xaml.Controls"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     Title="">
-    <Grid x:Name="RootGrid" RowSpacing="12" Padding="24" Background="{ThemeResource FusionSurfaceBrush}">
+    <Grid x:Name="RootGrid" Background="{ThemeResource FusionSurfaceBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="32" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock x:Name="LoginTitle" Text="" Style="{StaticResource TitleTextBlockStyle}" />
-        <TextBlock x:Name="LoginStatus" Grid.Row="1" Text="" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
-        <StackPanel x:Name="SessionRecoveryPanel" Grid.Row="2" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
-            <Button x:Name="ResetSessionButton" Content="" Click="ResetSessionButton_Click" />
-            <Button x:Name="CloseSessionButton" Content="" Click="CloseSessionButton_Click" />
-        </StackPanel>
-        <wv2:WebView2 x:Name="LoginWebView" Grid.Row="3" AutomationProperties.Name="" />
+
+        <!-- Compact dialog chrome: no title text or icon, the TitleBar only provides the drag area and system caption buttons. -->
+        <controls:TitleBar x:Name="LoginTitleBar"
+                           Grid.Row="0"
+                           Height="32"
+                           Title=""
+                           IsBackButtonVisible="False"
+                           AutomationProperties.Name="" />
+
+        <controls:WebView2 x:Name="LoginWebView" Grid.Row="1" AutomationProperties.Name="" />
+
+        <!-- Loading, sign-out and recovery states cover the web surface until it has content. -->
+        <Grid x:Name="LoginOverlay" Grid.Row="1" Background="{ThemeResource FusionSurfaceBrush}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="360" Padding="24,0">
+                <ProgressRing x:Name="LoginProgress" IsActive="True" Width="32" Height="32" HorizontalAlignment="Center" />
+                <TextBlock x:Name="LoginStatus"
+                           Text=""
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center"
+                           AutomationProperties.LiveSetting="Polite" />
+                <StackPanel x:Name="SessionRecoveryPanel" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Visibility="Collapsed">
+                    <Button x:Name="ResetSessionButton" Content="" Click="ResetSessionButton_Click" />
+                    <Button x:Name="CloseSessionButton" Content="" Click="CloseSessionButton_Click" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

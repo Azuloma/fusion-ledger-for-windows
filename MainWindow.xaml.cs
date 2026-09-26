@@ -66,6 +66,7 @@ public sealed partial class MainWindow : Window
             var hwnd = WindowNative.GetWindowHandle(this);
             var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
             var appWindow = AppWindow.GetFromWindowId(windowId);
+            appWindow.Resize(new global::Windows.Graphics.SizeInt32(1464, 934));
             if (AppWindowTitleBar.IsCustomizationSupported())
             {
                 appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;

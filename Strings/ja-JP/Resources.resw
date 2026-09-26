@@ -32,7 +32,7 @@
   <data name="ProfileSettings"><value>プロフィール設定</value></data>
   <data name="Administration"><value>管理</value></data>
   <data name="SignOut"><value>サインアウト</value></data>
-  <data name="SignInPrompt"><value>続行するにはサインインしてください。</value></data>
+  <data name="PleaseWait"><value>お待ちください…</value></data>
   <data name="SignInRequired"><value>続行するにはサインインが必要です。</value></data>
   <data name="SigningOut"><value>ローカルのサインインデータを消去しています…</value></data>
   <data name="SessionClearError"><value>ローカルのサインインデータを消去できませんでした。再試行するか、このウィンドウを閉じてください。</value></data>

@@ -119,7 +119,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.6.0", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.6.1", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -156,10 +156,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.6.0</Version>", StringComparison.Ordinal), "Version source of truth must be v0.6.0.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.6.0.0\"", StringComparison.Ordinal), "Manifest version must be v0.6.0.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.6.0", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.6.0", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.6.1</Version>", StringComparison.Ordinal), "Version source of truth must be v0.6.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.6.1.0\"", StringComparison.Ordinal), "Manifest version must be v0.6.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.6.1", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.6.1", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -192,4 +192,27 @@ Assert(AppIconAssets.TitleBarImageUri(true) == AppIconAssets.OnLightImageUri && 
 Assert(mainCode.Contains("ActualThemeChanged", StringComparison.Ordinal) && mainCode.Contains("WindowIcon.Apply(this)", StringComparison.Ordinal)
     && loginCode.Contains("WindowIcon.Apply(this)", StringComparison.Ordinal), "Both windows must set the MolHub icon and the title bar icon must follow the theme.");
 
-Console.WriteLine("v0.6.0 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+Assert(LoginWindowLayoutPolicy.ClientSize(1.0, 2560, 1392) == new LoginWindowLayoutPolicy.PixelSize(481, 683), "Sign-in client area must be 481 x 683 DIP at 100%.");
+Assert(LoginWindowLayoutPolicy.ClientSize(1.5, 2560, 1392) == new LoginWindowLayoutPolicy.PixelSize(722, 1025), "Sign-in client area must scale with DPI.");
+Assert(LoginWindowLayoutPolicy.ClientSize(1.5, 1280, 672) == new LoginWindowLayoutPolicy.PixelSize(722, 624)
+    && LoginWindowLayoutPolicy.ClientSize(2.0, 600, 400) == new LoginWindowLayoutPolicy.PixelSize(536, 336), "Sign-in window must stay inside the work area with a scaled margin.");
+Assert(LoginWindowLayoutPolicy.ClientSize(double.NaN, 2560, 1392) == LoginWindowLayoutPolicy.ClientSize(1.0, 2560, 1392), "Invalid DPI scale must fall back to 100%.");
+Assert(LoginWindowLayoutPolicy.CenteredPosition(483, 685, 0, 0, 2560, 1392) == new LoginWindowLayoutPolicy.PixelPoint(1038, 353)
+    && LoginWindowLayoutPolicy.CenteredPosition(900, 900, 100, 50, 800, 600) == new LoginWindowLayoutPolicy.PixelPoint(100, 50), "Sign-in window must be centered and never start outside the work area.");
+Assert(loginXaml.Contains("<RowDefinition Height=\"32\" />", StringComparison.Ordinal)
+    && loginXaml.Contains("x:Name=\"LoginTitleBar\"", StringComparison.Ordinal)
+    && loginCode.Contains("ExtendsContentIntoTitleBar = true", StringComparison.Ordinal)
+    && loginCode.Contains("SetTitleBar(LoginTitleBar)", StringComparison.Ordinal), "Sign-in window must use a 32 DIP TitleBar-owned caption area.");
+Assert(loginCode.Contains("LoginWindowLayoutPolicy.ClientSize", StringComparison.Ordinal)
+    && loginCode.Contains("GetDpiForWindow", StringComparison.Ordinal)
+    && loginCode.Contains("ResizeClient", StringComparison.Ordinal)
+    && loginCode.Contains("GetClientRect(hwnd, out var rendered)", StringComparison.Ordinal)
+    && loginCode.Contains("IsResizable = false", StringComparison.Ordinal), "Sign-in window must be sized from the DPI-aware compact layout policy.");
+Assert(loginXaml.Contains("x:Name=\"LoginOverlay\"", StringComparison.Ordinal)
+    && loginCode.Contains("core.NavigationCompleted -= Core_NavigationCompleted", StringComparison.Ordinal), "Loading overlay must hide on navigation completion and detach its handler on close.");
+foreach (var locale in new[] { "en-US", "ja-JP" })
+{
+    Assert(File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw")).Contains("<data name=\"PleaseWait\">", StringComparison.Ordinal), $"Sign-in loading text must be localized: {locale}");
+}
+
+Console.WriteLine("v0.6.1 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

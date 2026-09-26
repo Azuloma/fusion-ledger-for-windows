@@ -1,9 +1,13 @@
+using System.Runtime.InteropServices;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.Web.WebView2.Core;
 using Windows.ApplicationModel.Resources;
+using Windows.Graphics;
 using Windows.Storage;
 using Windows.System;
+using WinRT.Interop;
 
 namespace FusionLedger.Windows;
 
@@ -28,18 +32,83 @@ public sealed partial class LoginWindow : Window
         _themeService.Apply(RootGrid, ThemeService.ReadSavedPreference());
         LoginWebView.Loaded += LoginWebView_Loaded;
         Closed += LoginWindow_Closed;
-        ExtendsContentIntoTitleBar = false;
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(LoginTitleBar);
         WindowIcon.Apply(this);
+        ConfigureCompactWindow();
         ApplyLocalizedStrings();
     }
 
     private string L(string key) => _strings.GetString(key);
 
+    private void ConfigureCompactWindow()
+    {
+        try
+        {
+            var hwnd = WindowNative.GetWindowHandle(this);
+            var appWindow = AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd));
+            if (appWindow.Presenter is OverlappedPresenter presenter)
+            {
+                presenter.IsMaximizable = false;
+                presenter.IsMinimizable = false;
+                presenter.IsResizable = false;
+            }
+
+            var scale = GetDpiForWindow(hwnd) / 96.0;
+            var work = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary).WorkArea;
+            var client = LoginWindowLayoutPolicy.ClientSize(scale, work.Width, work.Height);
+            appWindow.ResizeClient(new SizeInt32(client.Width, client.Height));
+            // With content extended into the title bar, XAML also covers the caption area, but AppWindow's
+            // client size excludes it. Remove the difference so the whole surface matches the layout height.
+            if (GetClientRect(hwnd, out var rendered))
+            {
+                var extraHeight = rendered.Bottom - rendered.Top - client.Height;
+                if (extraHeight > 0) appWindow.ResizeClient(new SizeInt32(client.Width, client.Height - extraHeight));
+            }
+            var outer = appWindow.Size;
+            var position = LoginWindowLayoutPolicy.CenteredPosition(outer.Width, outer.Height, work.X, work.Y, work.Width, work.Height);
+            appWindow.Move(new PointInt32(position.X, position.Y));
+        }
+        catch
+        {
+            // Keep the default window placement if the host does not expose AppWindow sizing.
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetClientRect(IntPtr hwnd, out NativeRect rect);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left, Top, Right, Bottom;
+    }
+
+    private void ShowOverlay(string message, bool busy, bool recovery)
+    {
+        LoginStatus.Text = message;
+        LoginProgress.IsActive = busy;
+        LoginProgress.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+        SessionRecoveryPanel.Visibility = recovery ? Visibility.Visible : Visibility.Collapsed;
+        LoginOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void Core_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+    {
+        // Reveal the web sign-in surface once it has content, unless a recovery choice is pending.
+        if (_closed || SessionRecoveryPanel.Visibility == Visibility.Visible) return;
+        LoginProgress.IsActive = false;
+        LoginOverlay.Visibility = Visibility.Collapsed;
+    }
+
     private void ApplyLocalizedStrings()
     {
         Title = L("LoginTitle");
-        LoginTitle.Text = L("ProductName");
-        LoginStatus.Text = L("SignInPrompt");
+        AutomationProperties.SetName(LoginTitleBar, L("LoginTitle"));
+        LoginStatus.Text = L("PleaseWait");
         AutomationProperties.SetName(LoginWebView, L("LoginWebViewName"));
         ResetSessionButton.Content = L("Retry");
         CloseSessionButton.Content = L("Close");
@@ -74,6 +143,7 @@ public sealed partial class LoginWindow : Window
             _core.NewWindowRequested += Core_NewWindowRequested;
             _core.PermissionRequested += Core_PermissionRequested;
             _core.WebResourceResponseReceived += Core_WebResourceResponseReceived;
+            _core.NavigationCompleted += Core_NavigationCompleted;
             _initialized = true;
 
             if (_resetSessionBeforeNavigate)
@@ -95,8 +165,7 @@ public sealed partial class LoginWindow : Window
     {
         if (_core is null || _closed) return;
         _responses.Invalidate();
-        SessionRecoveryPanel.Visibility = Visibility.Collapsed;
-        LoginStatus.Text = L("SigningOut");
+        ShowOverlay(L("SigningOut"), busy: true, recovery: false);
         try
         {
             _core.Profile.CookieManager.DeleteAllCookies();
@@ -113,8 +182,7 @@ public sealed partial class LoginWindow : Window
 
     private void ShowSessionRecoveryError()
     {
-        LoginStatus.Text = L("SessionClearError");
-        SessionRecoveryPanel.Visibility = Visibility.Visible;
+        ShowOverlay(L("SessionClearError"), busy: false, recovery: true);
     }
 
     private async void ResetSessionButton_Click(object sender, RoutedEventArgs e)
@@ -217,6 +285,7 @@ public sealed partial class LoginWindow : Window
         core.NewWindowRequested -= Core_NewWindowRequested;
         core.PermissionRequested -= Core_PermissionRequested;
         core.WebResourceResponseReceived -= Core_WebResourceResponseReceived;
+        core.NavigationCompleted -= Core_NavigationCompleted;
     }
 
     private static Uri? TryParseUri(string? value) =>

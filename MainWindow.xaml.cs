@@ -51,6 +51,7 @@ public sealed partial class MainWindow : Window
         ApplyLocalizedStrings();
         RootGrid.ActualThemeChanged += (_, _) => { UpdateTitleBarIcon(); UpdateFlyoutBackdropTheme(); };
         ApplySavedTheme();
+        CaptionButtonTheme.Attach(this, RootGrid);
         UpdateTitleBarIcon();
         UpdateFlyoutBackdropTheme();
     }
@@ -373,6 +374,8 @@ public sealed partial class MainWindow : Window
     {
         if (_updatingSettings || _languageOptions?.SelectedItem is not RadioButton item) return;
         var language = SettingsPolicy.NormalizeLanguage(item.Tag as string);
+        // RadioButtons can report the initial selection after the page is built; only a real change is saved.
+        if (language == ReadLanguage()) return;
         PersistSetting(SettingsPolicy.LanguageKey, language, restartRequired: true);
     }
 
@@ -380,6 +383,7 @@ public sealed partial class MainWindow : Window
     {
         if (_updatingSettings || _themeOptions?.SelectedItem is not RadioButton item) return;
         var theme = SettingsPolicy.NormalizeTheme(item.Tag as string);
+        if (theme == ReadTheme()) return;
         if (PersistSetting(SettingsPolicy.ThemeKey, theme, restartRequired: false)) ApplySavedTheme();
     }
 

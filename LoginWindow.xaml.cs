@@ -33,6 +33,7 @@ public sealed partial class LoginWindow : Window
         Closed += LoginWindow_Closed;
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(LoginTitleBar);
+        CaptionButtonTheme.Attach(this, RootGrid);
         WindowIcon.Apply(this);
         ConfigureCompactWindow();
         ApplyLocalizedStrings();

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.8.4
+
+- The caption buttons (minimize, maximize, close) follow the app theme in the main and sign-in windows through `CaptionButtonTheme` (`AppWindowTitleBar.PreferredTheme`). With the Light app theme on a dark Windows mode they were drawn white on white and looked missing. High Contrast keeps the system colors.
+- App settings no longer shows "Theme saved" just by opening the page. A language or theme selection equal to the saved value is ignored, so only a real change is saved and reported.
+
 ## v0.8.3
 
 - Avatars (Dashboard commits, title bar and account flyout) are decoded again whenever the picture is loaded or its theme changes, via `AvatarImage`. The v0.8.1 fix only listened for theme changes and did not cover a Dashboard that was off screen during the switch, so initials still appeared.

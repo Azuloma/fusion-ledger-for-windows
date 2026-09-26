@@ -86,7 +86,7 @@ Assert(TitleBarLayoutPolicy.SearchWidthForClient(1906) == 540
 Assert(mainXaml.Contains("Spacing=\"12\" VerticalAlignment=\"Center\"", StringComparison.Ordinal), "TitleBar right header must be centered with 12px spacing.");
 Assert(mainXaml.Contains("KeyboardAcceleratorPlacementMode=\"Hidden\"", StringComparison.Ordinal), "Root shortcut placement hints must be hidden.");
 Assert(mainXaml.Contains("Background=\"Transparent\"", StringComparison.Ordinal) && mainXaml.Contains("CornerRadius=\"16\"", StringComparison.Ordinal), "TitleBar action buttons must be transparent circular chrome.");
-Assert(mainXaml.Contains("Glyph=\"&#xEA8F;\"", StringComparison.Ordinal) && mainXaml.Contains("Width=\"20\"", StringComparison.Ordinal), "Notifications must retain the Segoe Fluent Ringer glyph.");
+Assert(mainXaml.Contains("Glyph=\"&#xEA8F;\"", StringComparison.Ordinal), "Notifications must retain the Segoe Fluent Ringer glyph.");
 Assert(mainXaml.Contains("Glyph=\"&#xEA8F;\" FontSize=\"18\" AutomationProperties.AccessibilityView=\"Raw\"", StringComparison.Ordinal)
     && mainXaml.Contains("x:Name=\"ProfilePicture\"", StringComparison.Ordinal)
     && mainXaml.Contains("DisplayName=\"\" AutomationProperties.AccessibilityView=\"Raw\"", StringComparison.Ordinal), "Decorative title-bar icon and avatar must be hidden from the accessibility tree.");
@@ -102,8 +102,15 @@ Assert(mainXaml.Contains("x:Name=\"NotificationsButton\" Width=\"32\" Height=\"3
     && mainXaml.Contains("CornerRadius=\"6\"", StringComparison.Ordinal)
     && mainXaml.Contains("x:Name=\"ProfileButton\" Width=\"32\" Height=\"32\"", StringComparison.Ordinal)
     && mainXaml.Contains("CornerRadius=\"16\"", StringComparison.Ordinal), "Notification/profile button corner radii must follow their visual roles.");
-Assert(mainXaml.IndexOf("ProfileSettingsButton", StringComparison.Ordinal) < mainXaml.IndexOf("AdministrationButton", StringComparison.Ordinal)
-    && mainXaml.IndexOf("AdministrationButton", StringComparison.Ordinal) < mainXaml.IndexOf("SignOutButton", StringComparison.Ordinal), "Account rows must retain profile/admin/sign-out order.");
+Assert(mainXaml.IndexOf("x:Name=\"SignOutButton\"", StringComparison.Ordinal) < mainXaml.IndexOf("AccountSeparator", StringComparison.Ordinal)
+    && mainXaml.IndexOf("AccountSeparator", StringComparison.Ordinal) < mainXaml.IndexOf("x:Name=\"ProfileSettingsButton\"", StringComparison.Ordinal)
+    && mainXaml.IndexOf("x:Name=\"ProfileSettingsButton\"", StringComparison.Ordinal) < mainXaml.IndexOf("x:Name=\"AdministrationButton\"", StringComparison.Ordinal), "Account flyout must keep sign-out in the identity block, then profile/admin rows.");
+Assert(mainXaml.Split("<local:ThinAcrylicBackdrop />").Length == 3
+    && mainXaml.Split("ShouldConstrainToRootBounds=\"False\"").Length == 3
+    && mainXaml.Contains("<Setter Property=\"Background\" Value=\"Transparent\" />", StringComparison.Ordinal)
+    && mainXaml.Contains("<Setter Property=\"Padding\" Value=\"0\" />", StringComparison.Ordinal), "Account and notification flyouts must use a transparent presenter over an acrylic backdrop and may extend past the window.");
+Assert(mainXaml.Contains("<Grid Width=\"360\" MaxHeight=\"440\">", StringComparison.Ordinal)
+    && mainXaml.Contains("<ScrollViewer Width=\"320\" MaxHeight=\"440\"", StringComparison.Ordinal), "Notifications must be slightly wider than the 320px account flyout, and both must scroll instead of clipping.");
 Assert(!mainXaml.Contains("WebView2", StringComparison.Ordinal) && !mainCode.Contains("WebView2", StringComparison.Ordinal), "MainWindow must not host WebView2.");
 Assert(mainCode.Contains("CreateSettingsPage", StringComparison.Ordinal) && mainCode.Contains("CreateVersionInfoPage", StringComparison.Ordinal), "Settings and Version info must be functional native pages.");
 Assert(mainCode.Contains("ScrollViewer", StringComparison.Ordinal) && mainCode.Contains("RadioButtons", StringComparison.Ordinal)
@@ -119,7 +126,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.6.1", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.6.4", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -156,10 +163,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.6.1</Version>", StringComparison.Ordinal), "Version source of truth must be v0.6.1.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.6.1.0\"", StringComparison.Ordinal), "Manifest version must be v0.6.1.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.6.1", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.6.1", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.6.4</Version>", StringComparison.Ordinal), "Version source of truth must be v0.6.4.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.6.4.0\"", StringComparison.Ordinal), "Manifest version must be v0.6.4.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.6.4", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.6.4", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -215,4 +222,13 @@ foreach (var locale in new[] { "en-US", "ja-JP" })
     Assert(File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw")).Contains("<data name=\"PleaseWait\">", StringComparison.Ordinal), $"Sign-in loading text must be localized: {locale}");
 }
 
-Console.WriteLine("v0.6.1 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+var backdropCode = File.ReadAllText(Path.Combine(sourceRoot, "ThinAcrylicBackdrop.cs"));
+Assert(backdropCode.Contains("DesktopAcrylicKind.Thin", StringComparison.Ordinal) && backdropCode.Contains("IsInputActive = true", StringComparison.Ordinal)
+    && backdropCode.Contains("AccessibilitySettings().HighContrast", StringComparison.Ordinal) && mainCode.Contains("UpdateFlyoutBackdropTheme", StringComparison.Ordinal), "Title-bar flyouts must draw active thin acrylic that follows the app theme and High Contrast.");
+Assert(!FlyoutPlacementPolicy.OpenAbove(197, 1000, 50) && FlyoutPlacementPolicy.OpenAbove(139, 117, 1000)
+    && !FlyoutPlacementPolicy.OpenAbove(139, 160, 1000) && !FlyoutPlacementPolicy.OpenAbove(440, 100, 60), "Flyouts must open above only when the work area below is too short and there is more room above.");
+Assert(mainCode.Contains("ShowHeaderFlyout(NotificationsFlyout, NotificationsButton)", StringComparison.Ordinal)
+    && mainCode.Contains("ShowHeaderFlyout(AccountFlyout, ProfileButton)", StringComparison.Ordinal)
+    && mainCode.Contains("DisplayAreaFallback.Nearest).WorkArea", StringComparison.Ordinal), "Title-bar flyouts must choose their placement from the monitor work area.");
+
+Console.WriteLine("v0.6.4 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

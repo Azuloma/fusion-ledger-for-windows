@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.6.4
+
+- Title-bar flyouts now use thin desktop acrylic so the screen behind visibly shows through. The windowed flyout popup never becomes the active window, so its backdrop is configured as active (following the app theme and High Contrast) instead of drawing the inactive solid fallback.
+- Title-bar flyouts open above their button when the monitor work area below is too short, so they no longer slide under the taskbar.
+
+## v0.6.2
+
+- Restyled the account and notification flyouts after the Windows account menu: 320 px account flyout (48 px avatar, name, status and role, compact sign-out link, separator, 36 px icon rows) and a slightly wider 360 px notifications flyout with the same header/separator layout. Both use a transparent presenter over a desktop acrylic backdrop, 8 px corners, may extend beyond the main window near screen edges and scroll instead of clipping.
+- The main window now opens at 1464 x 934.
+
 ## v0.6.1
 
 - Made the sign-in window a compact dialog: a 481 x 683 DIP client area (32 DIP title bar with only a close button, no title text or icon) scaled for the monitor's DPI, clamped to its work area and centered. The window can no longer be resized, maximized or minimized.

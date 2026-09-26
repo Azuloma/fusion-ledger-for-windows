@@ -8,3 +8,5 @@ artifacts/
 *.pfx
 .vs/
 BundleArtifacts/
+.claude_stuff/
+/CLAUDE.md

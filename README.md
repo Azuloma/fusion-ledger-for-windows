@@ -1,57 +1,79 @@
-# Fusion Ledger for Windows v0.5.2
+# Fusion Ledger for Windows
 
-This is a native-first WinUI 3 prototype. The app starts with a dedicated `LoginWindow` containing the WebView2 sign-in surface. After a verified production `/api/me` response, that window closes and the authenticated native `MainWindow` opens. The MainWindow is a native shell with functional settings/version pages; it does not embed the web application.
+A native-first Windows client for Fusion Ledger, built with WinUI 3. Current version: **v0.5.2** (beta prototype).
 
-## Architecture
+The app opens a sign-in window that hosts the existing Fusion Ledger web login in WebView2. Once the production `/api/me` response confirms the signed-in user, the sign-in window closes and a native main window opens. The main window is a WinUI shell, not a wrapper around the web application.
 
-- WinUI 3 packaged x64 desktop app, Microsoft.WindowsAppSDK 2.5.1.
-- MainWindow uses the actual `Microsoft.UI.Xaml.Controls.TitleBar`, Mica, NavigationView, native placeholders, account and notification flyouts.
-- App settings persist only the fixed `ui.language` and `ui.theme` keys in `ApplicationData.Current.LocalSettings`. Invalid stored values fall back to English/System. Theme changes apply immediately; language changes require a restart for the full resource tree to refresh.
-- Version info is assembled at runtime from assembly/package identity and reports process architecture, the Windows App SDK assembly version, the installed WebView2 runtime version when available, and the sign-in-only role. Unavailable runtime values are shown as unavailable.
-- LoginWindow is the only window that creates WebView2. Its persistent profile is `ApplicationData.Current.LocalFolder.Path\FusionLedger.WebView2` (normally `%LOCALAPPDATA%\Packages\FusionLedger.Windows_*\LocalState\FusionLedger.WebView2` for a packaged install).
-- Only an exact HTTPS GET to the production `/api/me` is observed. Request headers, cookies, response headers and secrets are never read or logged.
-- The parser requires bounded JSON, a username, known status values (`pending`, `approved`, `rejected`, `suspended`), role values (`member`, `admin`) and optionally a bounded PNG data URI.
+## Status
 
-## Security boundary
+| Area | State |
+| --- | --- |
+| Sign-in (WebView2) | Working. A saved session signs in automatically on the next launch. |
+| Native shell | Title bar, page search, navigation pane, account and notification flyouts. |
+| App settings | Working. Language (English / Japanese) and theme (System / Light / Dark). |
+| Version info | Working. Reports the app, Windows App SDK, WebView2 runtime and package details. |
+| Dashboard, Projects, Commit history | Placeholders. They are not connected to data yet. |
+| Server maintenance, Administration, Profile settings | Placeholders. Maintenance and administration appear only for approved admins. |
+| Notifications | Not connected. The flyout says so; no notifications are generated. |
 
-The login WebView2 allows only `https://fusion-ledger.desase0175.workers.dev` as an in-app origin. External HTTP(S) and `mailto:` links are opened by Windows; popups are controlled, permissions are denied, DevTools/host objects/WebMessage are disabled, and certificate errors are not bypassed. No script, CSS, DOM or WebMessage bridge is injected or exposed.
+Placeholder pages show a heading and a "not connected" message only. They never show sample counts, records or controls that do nothing.
 
-## Build and tests
+## Requirements
+
+- Windows 10 version 2004 (build 19041) or later, x64
+- .NET 10 SDK
+- Microsoft Edge WebView2 Runtime
+- Developer Mode, to install the unsigned development package
+
+## Build and test
+
+Run these from the repository root:
 
 ```powershell
 dotnet restore
 dotnet run --project tests\FusionLedger.Windows.PolicyTests\FusionLedger.Windows.PolicyTests.csproj
 dotnet build FusionLedger.Windows.csproj -p:Platform=x64 -p:Configuration=Debug
-.\Install-Prototype.ps1 -WhatIf
 ```
 
-The build creates an unsigned MSIX under `AppPackages`. Do not install it in production. `Install-Prototype.ps1` is a developer-mode, `-AllowUnsigned` flow and must be run from PowerShell; double-click installation is not supported. A real distribution requires a trusted signing certificate and an appropriately signed package. Unsigned packages can trigger Windows SmartScreen warnings.
+- The policy tests check navigation and sign-in rules, settings validation, `/api/me` parsing, and required structure in the source, XAML, version files and resources. A passing run prints a single summary line.
+- The build creates an unsigned MSIX in `AppPackages\FusionLedger.Windows_<version>_x64_Debug_Test\`.
 
-## Installation（for Source Code）
+## Install a development build
 
-Run the installation script using Windows PowerShell 5.1 or later. First, build the x64 Debug package at the root of the repository.
-
-```powershell
-dotnet build FusionLedger.Windows.csproj -p:Platform=x64 -p:Configuration=Debug
-```
-
-If there are multiple versions in `AppPackages`, please specify the directory of the package to use via `-PackageDirectory`. You can check the current version (v0.5.2) using the following command before installing.
+Use Windows PowerShell 5.1 or later. First enable **Settings > System > For developers > Developer Mode**. Then check and install the package you built:
 
 ```powershell
 .\Install-Prototype.ps1 -WhatIf -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.5.2.0_x64_Debug_Test"
 .\Install-Prototype.ps1 -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.5.2.0_x64_Debug_Test"
 ```
 
-`-WhatIf` merely validates the locations of the MSIX and x64 dependency packages without performing the actual installation. To proceed with the actual installation, please enable "Developer mode" under Windows Settings > System > For developers. This script installs the unsigned package for the current user using `Add-AppxPackage -AllowUnsigned` and includes the `.msix` dependency packages located in `Dependencies\x64`. Running the script with administrator privileges or installing certificates is not required. If the script is blocked by the execution policy, temporarily relax the policy for the current PowerShell process before running it.
+- `-WhatIf` only checks that the package and its x64 dependency packages are present; nothing is installed.
+- `-PackageDirectory` can be omitted only when `AppPackages` contains exactly one `*_x64_Debug_Test` directory.
+- The script installs for the current user with `Add-AppxPackage -AllowUnsigned`, including the packages in `Dependencies\x64`. It does not need administrator rights or a certificate.
+- If the execution policy blocks the script, allow it for the current PowerShell session only: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`.
 
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-```
+This package is unsigned and meant for development only. Windows SmartScreen may warn about it. Signed distribution is not set up yet.
 
-This is an unsigned build for development purposes. For distribution, please use a package signed with a trusted certificate.
+## How it works
 
-## Current limitations
+- **Packaging:** packaged WinUI 3 desktop app for x64, using Microsoft.WindowsAppSDK 2.5.1 and Microsoft.Web.WebView2.
+- **Windows:** `LoginWindow` is the only window that creates WebView2. `MainWindow` is fully native and changes pages by replacing the content of `ContentFrame`.
+- **Sign-in data:** the WebView2 profile is stored at `ApplicationData.Current.LocalFolder\FusionLedger.WebView2`. For an installed package this is normally `%LOCALAPPDATA%\Packages\FusionLedger.Windows_*\LocalState\FusionLedger.WebView2`.
+- **User details:** the app reads only an exact HTTPS `GET /api/me` response. It accepts bounded JSON with a username, a known status (`pending`, `approved`, `rejected`, `suspended`) and role (`member`, `admin`), plus an optional small PNG avatar.
+- **Settings:** only the `ui.language` and `ui.theme` keys are stored in `LocalSettings`. Invalid values fall back to English and System. Theme changes apply at once; a language change applies after restarting the app.
+- **Accessibility:** English and Japanese resources, Light, Dark and High Contrast themes, keyboard shortcuts (Ctrl+K search, Ctrl+, settings, Alt+N notifications, Alt+Left back) and localized accessibility names.
 
-Dashboard, projects, commit history, server maintenance, profile settings and administration are intentionally placeholders with no fake counts, cards, users or actions. App settings persist language/theme choices, and Version info reports observed runtime details. Notifications show an honest not-connected preview; commit notifications are not implemented yet. Sign out opens the replacement LoginWindow first, clears cookies and site data through the active WebView2 profile, and only then closes MainWindow and navigates to login. A clear failure stays in a localized retry/close state and cannot auto-login with stale data. Sign out does not revoke the server-side session because no logout API call is made in this prototype. System tray/background notifications are also not part of v0.5.2.
+## Security boundary
 
-See [VERSION.md](VERSION.md), [CHANGELOG.md](CHANGELOG.md), and [DESIGN.md](DESIGN.md) for the design contract.
+- The sign-in view allows only `https://fusion-ledger.desase0175.workers.dev` inside the app. Other HTTP(S) and `mailto:` links open in the default Windows app.
+- Pop-ups are controlled and permission requests are denied. DevTools, host objects and WebMessage are disabled. Certificate errors are never bypassed.
+- The app injects no scripts, CSS or message bridge. It never reads or logs cookies, request headers or other secrets.
+
+## Known limitations
+
+- Sign out clears the WebView2 cookies and site data before showing the sign-in page, but it does not end the session on the server. No logout API is called yet.
+- The data pages are not connected, and there are no notifications, tray icon or background activity.
+
+## Versioning
+
+The `<Version>` element in `FusionLedger.Windows.csproj` defines the app version. `Package.appxmanifest` uses the matching four-part package version (for example `0.5.2.0`). See [VERSION.md](VERSION.md) for the policy and [CHANGELOG.md](CHANGELOG.md) for release notes.

@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.8.1
+
+- Dashboard commit avatars are decoded again after a Light/Dark theme change; previously they fell back to initials once the theme changed.
+
+## v0.8.0
+
+- Added the native Dashboard, loaded through the data bridge from `/api/v1/dashboard`. It follows the web workspace layout: a 300 DIP side column with Workspace status (active projects, in progress, your reservations, and pending approvals for site admins and project owners), Top projects (8), Activity (4) and the external-storage privacy note, next to the Recent commits feed (6 commits with author avatar, "published" byline, local date, title, 420-character change preview, version badge and a copyable short commit ID). Your own reservations appear above the feed. Below 860 DIP the columns stack.
+- Loading, refresh and honest error states (connection, ended session with "Sign in again", pending approval, maintenance, rate limit, unexpected) use an InfoBar; data older than a minute is refreshed when the page is shown again. Actions without a native implementation (create project, publish, open project) are not rendered.
+- Dashboard styles live in `App.xaml` with ThemeResource setters so code-built pages follow Light, Dark and High Contrast.
+
 ## v0.7.1
 
 - The data bridge retries hidden controller creation (up to three attempts with backoff), because the sign-in WebView may still be shutting down the shared browser process right after sign-in.

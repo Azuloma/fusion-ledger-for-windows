@@ -22,6 +22,7 @@ public sealed partial class MainWindow : Window
     private readonly Stack<NativePage> _history = new();
     private readonly ThemeService _themeService = new();
     private readonly WebBridgeClient _bridge = new();
+    private DashboardView? _dashboard;
     private string _bridgeStatusKey = "BridgeConnecting";
     private TextBlock? _bridgeStatusText;
     private bool _signingOut;
@@ -283,6 +284,7 @@ public sealed partial class MainWindow : Window
 
     private FrameworkElement CreatePlaceholder(NativePage page)
     {
+        if (page == NativePage.Dashboard) return CreateDashboardPage();
         if (page == NativePage.AppSettings) return CreateSettingsPage();
         if (page == NativePage.VersionInfo) return CreateVersionInfoPage();
 
@@ -290,6 +292,16 @@ public sealed partial class MainWindow : Window
         panel.Children.Add(new TextBlock { Text = L("Page_" + NativePageCatalog.SearchKey(page)), Style = (Style)Application.Current.Resources["TitleTextBlockStyle"] });
         panel.Children.Add(new TextBlock { Text = L("NotConnected"), TextWrapping = TextWrapping.Wrap });
         return panel;
+    }
+
+    private FrameworkElement CreateDashboardPage()
+    {
+        _dashboard ??= new DashboardView(L, _user, ReadLanguage(),
+            () => _bridge.RequestAsync("dashboard"),
+            page => NavigateTo(page),
+            () => _ = SignOutAsync());
+        _ = _dashboard.EnsureLoadedAsync();
+        return _dashboard;
     }
 
     private FrameworkElement CreateSettingsPage()
@@ -544,6 +556,11 @@ public sealed partial class MainWindow : Window
     private async void SignOut_Click(object sender, RoutedEventArgs e)
     {
         AccountFlyout.Hide();
+        await SignOutAsync();
+    }
+
+    private async Task SignOutAsync()
+    {
         if (_signingOut) return;
         _signingOut = true;
         // Revoke the server session first when the bridge is up; local sign-in data is cleared either way.

@@ -89,7 +89,8 @@ public static class ProfilePayloadParser
         return string.IsNullOrWhiteSpace(result) || result.Length > maxLength ? null : result;
     }
 
-    private static byte[]? ParsePngDataUri(string? value)
+    /// <summary>Bounded PNG data-URI decoding shared by the sign-in snapshot and bridge DTO avatars.</summary>
+    public static byte[]? ParsePngDataUri(string? value)
     {
         if (value is null || !value.StartsWith(PngDataPrefix, StringComparison.Ordinal)) return null;
         var encoded = value[PngDataPrefix.Length..];

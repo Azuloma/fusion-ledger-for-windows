@@ -126,7 +126,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.7.1", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.8.1", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -163,10 +163,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.7.1</Version>", StringComparison.Ordinal), "Version source of truth must be v0.7.1.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.7.1.0\"", StringComparison.Ordinal), "Manifest version must be v0.7.1.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.7.1", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.7.1", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.8.1</Version>", StringComparison.Ordinal), "Version source of truth must be v0.8.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.8.1.0\"", StringComparison.Ordinal), "Manifest version must be v0.8.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.8.1", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.8.1", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -284,4 +284,54 @@ Assert(signOutHandler.IndexOf("RequestAsync(\"logout\")", StringComparison.Ordin
     && signOutHandler.IndexOf("RequestAsync(\"logout\")", StringComparison.Ordinal) < signOutHandler.IndexOf("App.RequestSignOut()", StringComparison.Ordinal)
     && mainCode.Contains("_bridge.Dispose()", StringComparison.Ordinal), "Sign-out must revoke the server session through the bridge before clearing local data, and the bridge must close with MainWindow.");
 
-Console.WriteLine("v0.7.1 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+// Native Dashboard: server DTO parsing, web-equivalent counts and presentation rules.
+var dashboardJson = """
+{"projects":[
+  {"id":"p1","name":"Sonic Nightmare","reservation":{"userId":"u1","username":"Azunel","startedAt":"2026-09-19T14:00:00.000Z"}},
+  {"id":"p2","name":"Splats Framework","reservation":{"userId":"u2","username":"kalvin","startedAt":null}},
+  {"id":"p3","name":"Scratch Edition","reservation":null},
+  {"id":"","name":"Invalid"}],
+ "commits":[
+  {"id":"74a6ba6e-0000-4000-8000-000000000000","projectName":"Sonic Nightmare","title":"Sonic Nightmare","changes":"small fixes","url":"https://example.com/a","version":"v0.4.785B","createdAt":"2026-09-19T14:24:00.000Z","author":{"id":"u2","username":"kalvin","avatar":"https://example.com/a.png"}},
+  {"id":"c2","projectName":"Splats","title":"","changes":"no title is skipped","author":{"username":"x"}}],
+ "activity":[{"projectName":"Splats Framework","actor":"azunel","createdAt":"2026-09-18T09:29:00.000Z"}],
+ "stats":{"commits":4,"projects":2},
+ "pending":{"accounts":1,"requests":2}}
+""";
+var dashboard = DashboardModel.Parse(System.Text.Json.JsonDocument.Parse(dashboardJson).RootElement);
+Assert(dashboard is { ActiveProjects: 3, InProgress: 2, PendingApprovals: 3 } && dashboard.ReservedBy("azunel").Count == 1 && dashboard.ReservedBy("nobody").Count == 0,
+    "Dashboard counts must be computed from server data exactly like the web dashboard.");
+Assert(dashboard!.Commits.Count == 1 && dashboard.Commits[0].AuthorName == "kalvin" && dashboard.Commits[0].AuthorAvatar is null && dashboard.Commits[0].Version == "v0.4.785B"
+    && dashboard.Activity.Count == 1 && dashboard.Activity[0].Actor == "azunel", "Dashboard commits/activity must be parsed with bounded fields and validated avatars.");
+Assert(DashboardModel.Parse(System.Text.Json.JsonDocument.Parse("{\"projects\":{}}").RootElement) is null
+    && DashboardModel.Parse(System.Text.Json.JsonDocument.Parse("[]").RootElement) is null, "Unexpected dashboard shapes must not render.");
+Assert(DashboardModel.Preview(new string('a', 421)) == new string('a', 420) + "…" && DashboardModel.Preview("  short  ") == "short"
+    && DashboardModel.ShortId("74a6ba6e-0000") == "74a6ba6" && DashboardModel.ShortId("abc") == "abc", "Commit previews and short IDs must match the web feed.");
+Assert(DashboardModel.FormatDate(DateTimeOffset.Parse("2026-09-19T14:24:00Z"), "en-US", TimeZoneInfo.Utc) == "Sep 19, 2026, 02:24 PM"
+    && DashboardModel.FormatDate(DateTimeOffset.Parse("2026-09-19T14:24:00Z"), "ja-JP", TimeZoneInfo.Utc) == "2026/09/19 14:24"
+    && DashboardModel.FormatDate(null, "en-US") == string.Empty, "Dashboard dates must be localized and never invented.");
+Assert(DashboardModel.ShowsPendingApprovals("admin", false) && DashboardModel.ShowsPendingApprovals("member", true) && !DashboardModel.ShowsPendingApprovals("member", false),
+    "Pending approvals are only shown to site admins and project owners.");
+Assert(DashboardModel.ErrorFor(BridgeResult.HostFailure("r", "BRIDGE_UNAVAILABLE", true, BridgeOutcome.None)) == DashboardError.Connection
+    && DashboardModel.ErrorFor(new BridgeResult("r", 401, false, null, null, "UNAUTHORIZED", null, false, BridgeOutcome.None)) == DashboardError.SessionEnded
+    && DashboardModel.ErrorFor(new BridgeResult("r", 403, false, null, null, "NOT_APPROVED", null, false, BridgeOutcome.None)) == DashboardError.PendingApproval
+    && DashboardModel.ErrorFor(new BridgeResult("r", 503, false, null, null, "MAINTENANCE", null, false, BridgeOutcome.None)) == DashboardError.Maintenance
+    && DashboardModel.ErrorFor(new BridgeResult("r", 429, false, null, null, "RATE_LIMIT", null, true, BridgeOutcome.None)) == DashboardError.RateLimited
+    && DashboardModel.ErrorFor(new BridgeResult("r", 500, false, null, null, "SERVER_ERROR", null, true, BridgeOutcome.None)) == DashboardError.Unexpected,
+    "Dashboard errors must map bridge results to honest states.");
+var dashboardCode = File.ReadAllText(Path.Combine(sourceRoot, "DashboardView.cs"));
+var usedKeys = System.Text.RegularExpressions.Regex.Matches(dashboardCode, "\"(Dashboard_[A-Za-z]+)\"").Select(m => m.Groups[1].Value)
+    .Concat(new[] { "ErrorConnection", "ErrorSession", "ErrorPending", "ErrorMaintenance", "ErrorRateLimit", "ErrorUnexpected" }.Select(k => "Dashboard_" + k + "Title"))
+    .Distinct().ToList();
+foreach (var locale in new[] { "en-US", "ja-JP" })
+{
+    var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
+    foreach (var key in usedKeys) Assert(resource.Contains($"<data name=\"{key}\">", StringComparison.Ordinal), $"Missing dashboard string {key} in {locale}");
+}
+Assert(mainCode.Contains("_bridge.RequestAsync(\"dashboard\")", StringComparison.Ordinal) && mainCode.Contains("if (page == NativePage.Dashboard) return CreateDashboardPage();", StringComparison.Ordinal)
+    && dashboardCode.Contains("Dashboard_StorageNote", StringComparison.Ordinal)
+    && !dashboardCode.Contains("Create project", StringComparison.OrdinalIgnoreCase) && !dashboardCode.Contains("publish:", StringComparison.Ordinal),
+    "Dashboard must load through the bridge, keep the storage privacy note and render no actions without a native implementation.");
+Assert(dashboardCode.Contains("picture.ActualThemeChanged += (_, _) => _ = SetAvatarAsync(picture, avatar);", StringComparison.Ordinal), "Commit avatars must be decoded again after a theme change.");
+
+Console.WriteLine("v0.8.1 native shell, dashboard, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

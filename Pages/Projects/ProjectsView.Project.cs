@@ -388,7 +388,7 @@ internal sealed partial class ProjectsView
         {
             content.Children.Add(_p.Secondary(preview.Length > CommitPreviewLength ? preview[..CommitPreviewLength] + "…" : preview));
         }
-        var meta = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var meta = new InlineWrapPanel();
         meta.Children.Add(PageParts.VersionBadge(ProjectsModel.VersionLabel(commit.Version, commit.Id)));
         meta.Children.Add(Centered(PageParts.Caption(JoinDot(commit.AuthorName, DashboardModel.FormatDate(commit.CreatedAt, _language)))));
         content.Children.Add(meta);

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.9.2
+
+- The project list's "Latest version" and "Last updated" line wraps (`InlineWrapPanel`) in a narrow window instead of clipping the date; the version label and its badge stay together. Commit rows wrap their version badge and "author · date" line the same way.
+- Source files are grouped in folders (`Auth`, `Bridge`, `Shell`, `Settings`, `Pages`). Namespaces and behavior are unchanged.
+
 ## v0.9.1
 
 - Project names and the Private label now wrap (`InlineWrapPanel`) in the project list and the project heading. A long name was clipped and pushed the label out of view.

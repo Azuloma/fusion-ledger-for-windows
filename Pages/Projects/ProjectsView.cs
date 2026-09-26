@@ -361,11 +361,14 @@ internal sealed partial class ProjectsView : UserControl
         titleRow.Children.Add(_p.PrivateBadge());
         identity.Children.Add(titleRow);
         identity.Children.Add(project.Description.Length > 0 ? _p.Secondary(project.Description) : _p.Secondary(L("Projects_NoDescription")));
-        var meta = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        // "Last updated" moves to the next line when the row is narrow; the label and its version badge stay together.
+        var meta = new InlineWrapPanel { HorizontalSpacing = 8 };
         if (project.Latest is { } latest)
         {
-            meta.Children.Add(Centered(PageParts.Caption(L("Projects_LatestVersion"))));
-            meta.Children.Add(PageParts.VersionBadge(ProjectsModel.VersionLabel(latest.Version, latest.Id)));
+            var version = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            version.Children.Add(Centered(PageParts.Caption(L("Projects_LatestVersion"))));
+            version.Children.Add(PageParts.VersionBadge(ProjectsModel.VersionLabel(latest.Version, latest.Id)));
+            meta.Children.Add(version);
         }
         else
         {

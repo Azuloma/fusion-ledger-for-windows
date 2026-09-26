@@ -4,7 +4,10 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <RootNamespace>FusionLedger.Windows</RootNamespace>
-    <Version>0.5.2</Version>
+    <Version>0.6.0</Version>
+    <Product>MolHub for Windows</Product>
+    <AssemblyTitle>MolHub for Windows</AssemblyTitle>
+    <ApplicationIcon>Assets\AppIconOnDark.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
@@ -30,7 +33,8 @@
     <None Remove="tests\**" />
     <Page Remove="tests\**" />
     <Manifest Include="app.manifest" />
-    <Content Include="Assets\fusion-ledger_ico.png" />
+    <Content Include="Assets\*.png" />
+    <Content Include="Assets\*.ico" />
     <Content Include="Strings\en-US\Resources.resw" />
     <Content Include="Strings\ja-JP\Resources.resw" />
   </ItemGroup>

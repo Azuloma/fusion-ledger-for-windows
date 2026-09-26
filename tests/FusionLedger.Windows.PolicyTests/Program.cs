@@ -119,7 +119,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.5.2", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.6.0", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -132,7 +132,7 @@ foreach (var source in new[] { mainXaml, mainCode, loginXaml, loginCode })
 Assert(mainCode.Contains("SetTitleBar(AppTitleBar)", StringComparison.Ordinal), "Native title bar must own drag/caption behavior.");
 Assert(!mainCode.Contains("RightInset", StringComparison.Ordinal), "Manual title bar inset logic must be absent.");
 Assert(!mainCode.Contains("fake", StringComparison.OrdinalIgnoreCase) && !mainXaml.Contains("fake", StringComparison.OrdinalIgnoreCase), "Native shell must not contain fake data.");
-Assert(!loginXaml.Contains("Fusion Ledger sign in", StringComparison.Ordinal) && !loginXaml.Contains("Sign in to continue", StringComparison.Ordinal), "Login user-facing strings must come from resources.");
+Assert(!loginXaml.Contains("MolHub sign in", StringComparison.Ordinal) && !loginXaml.Contains("Sign in to continue", StringComparison.Ordinal), "Login user-facing strings must come from resources.");
 Assert(!mainXaml.Contains("Notifications\"", StringComparison.Ordinal) && !mainXaml.Contains("Profile settings\"", StringComparison.Ordinal), "MainWindow user-facing strings must come from resources.");
 Assert(!mainXaml.Contains("email", StringComparison.OrdinalIgnoreCase) && !mainXaml.Contains("raw id", StringComparison.OrdinalIgnoreCase) && !mainXaml.Contains("token", StringComparison.OrdinalIgnoreCase), "Account flyout must not expose fake email/id/token data.");
 Assert(loginCode.Contains("DeleteAllCookies", StringComparison.Ordinal), "Sign out must clear cookies through the active WebView2 profile.");
@@ -156,10 +156,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.5.2</Version>", StringComparison.Ordinal), "Version source of truth must be v0.5.2.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.5.2.0\"", StringComparison.Ordinal), "Manifest version must be v0.5.2.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.5.2", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.5.2", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.6.0</Version>", StringComparison.Ordinal), "Version source of truth must be v0.6.0.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.6.0.0\"", StringComparison.Ordinal), "Manifest version must be v0.6.0.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.6.0", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.6.0", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -170,4 +170,26 @@ foreach (var locale in new[] { "en-US", "ja-JP" })
 }
 Assert(!File.Exists(Path.Combine(sourceRoot, "Assets", "Fonts", "MonaSans.ttf")), "Native Mona Sans binary must remain absent.");
 
-Console.WriteLine("v0.5.2 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+var manifest = File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest"));
+Assert(manifest.Contains("<DisplayName>MolHub for Windows</DisplayName>", StringComparison.Ordinal)
+    && manifest.Contains("<PublisherDisplayName>MolHub</PublisherDisplayName>", StringComparison.Ordinal)
+    && manifest.Contains("uap:VisualElements AppListEntry=\"default\" DisplayName=\"MolHub for Windows\"", StringComparison.Ordinal), "Package display names must use the MolHub brand.");
+Assert(manifest.Contains("<Identity Name=\"FusionLedger.Windows\"", StringComparison.Ordinal), "Package identity must stay stable so upgrades keep the sign-in profile and settings.");
+foreach (var locale in new[] { "en-US", "ja-JP" })
+{
+    var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
+    Assert(!resource.Contains("Fusion Ledger", StringComparison.Ordinal) && resource.Contains("<value>MolHub for Windows</value>", StringComparison.Ordinal), $"User-facing strings must use the MolHub brand: {locale}");
+}
+foreach (var logo in new[] { "Square44x44Logo.scale-100.png", "Square44x44Logo.targetsize-24_altform-unplated.png", "Square44x44Logo.targetsize-24_altform-lightunplated.png",
+    "Square150x150Logo.scale-100.png", "Wide310x150Logo.scale-100.png", "SmallTile.scale-100.png", "LargeTile.scale-100.png", "StoreLogo.scale-100.png",
+    "AppIconOnDark.png", "AppIconOnLight.png", "AppIconOnDark.ico", "AppIconOnLight.ico" })
+{
+    Assert(File.Exists(Path.Combine(sourceRoot, "Assets", logo)), $"Icon asset is missing: {logo}");
+}
+Assert(!File.Exists(Path.Combine(sourceRoot, "Assets", "fusion-ledger_ico.png")) && !manifest.Contains("fusion-ledger_ico", StringComparison.Ordinal), "The retired Fusion Ledger icon must not be referenced.");
+Assert(AppIconAssets.TitleBarImageUri(true) == AppIconAssets.OnLightImageUri && AppIconAssets.TitleBarImageUri(false) == AppIconAssets.OnDarkImageUri
+    && AppIconAssets.WindowIconFile(true) == AppIconAssets.OnLightIconFile && AppIconAssets.WindowIconFile(false) == AppIconAssets.OnDarkIconFile, "Icon variants must follow surface lightness.");
+Assert(mainCode.Contains("ActualThemeChanged", StringComparison.Ordinal) && mainCode.Contains("WindowIcon.Apply(this)", StringComparison.Ordinal)
+    && loginCode.Contains("WindowIcon.Apply(this)", StringComparison.Ordinal), "Both windows must set the MolHub icon and the title bar icon must follow the theme.");
+
+Console.WriteLine("v0.6.0 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

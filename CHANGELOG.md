@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.6.0
+
+- Renamed the user-facing product from Fusion Ledger for Windows to MolHub for Windows in the package display names, window and title-bar text, accessibility names and installer messages. The package identity, namespace and WebView2 profile folder are unchanged so upgrades keep sign-in data and settings.
+- Replaced the app icon with the MolHub mole artwork: scaled Start/taskbar/tile/store logos, `targetsize` unplated variants, dark-line `lightunplated` variants for light taskbars, and theme-aware title-bar and window icons.
+
 ## v0.5.2
 
 - Fixed the post-login access violation by replacing `Frame.Navigate` with `ContentControl` content updates and `EntranceThemeTransition` animations.

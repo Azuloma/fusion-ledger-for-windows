@@ -4,12 +4,12 @@
          xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows/10"
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
          IgnorableNamespaces="uap uap10 rescap">
-  <Identity Name="FusionLedger.Windows" Publisher="CN=Fusion Ledger, OID.2.25.311729368913984317654407730594956997722=1" Version="0.5.2.0" />
+  <Identity Name="FusionLedger.Windows" Publisher="CN=Fusion Ledger, OID.2.25.311729368913984317654407730594956997722=1" Version="0.6.0.0" />
   <Properties>
-    <DisplayName>Fusion Ledger for Windows</DisplayName>
-    <PublisherDisplayName>Fusion Ledger</PublisherDisplayName>
-    <Description>Fusion Ledger Windows application</Description>
-    <Logo>Assets\fusion-ledger_ico.png</Logo>
+    <DisplayName>MolHub for Windows</DisplayName>
+    <PublisherDisplayName>MolHub</PublisherDisplayName>
+    <Description>MolHub for Windows</Description>
+    <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
   <Resources>
     <Resource Language="en-us" />
@@ -20,8 +20,8 @@
   </Dependencies>
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$" uap10:RuntimeBehavior="packagedClassicApp" uap10:TrustLevel="mediumIL">
-      <uap:VisualElements AppListEntry="default" DisplayName="Fusion Ledger for Windows" Description="Fusion Ledger for Windows" Square44x44Logo="Assets\fusion-ledger_ico.png" Square150x150Logo="Assets\fusion-ledger_ico.png" BackgroundColor="transparent">
-        <uap:DefaultTile Square71x71Logo="Assets\fusion-ledger_ico.png" Square310x310Logo="Assets\fusion-ledger_ico.png" Wide310x150Logo="Assets\fusion-ledger_ico.png" />
+      <uap:VisualElements AppListEntry="default" DisplayName="MolHub for Windows" Description="MolHub for Windows" Square44x44Logo="Assets\Square44x44Logo.png" Square150x150Logo="Assets\Square150x150Logo.png" BackgroundColor="transparent">
+        <uap:DefaultTile Square71x71Logo="Assets\SmallTile.png" Square310x310Logo="Assets\LargeTile.png" Wide310x150Logo="Assets\Wide310x150Logo.png" ShortName="MolHub" />
       </uap:VisualElements>
     </Application>
   </Applications>

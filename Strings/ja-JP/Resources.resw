@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <data name="ProductName"><value>Fusion Ledger</value></data>
-  <data name="MainWindowTitle"><value>Fusion Ledger for Windows</value></data>
-  <data name="LoginTitle"><value>Fusion Ledger サインイン</value></data>
-  <data name="LoginWebViewName"><value>Fusion Ledger サインイン</value></data>
-  <data name="TitleBarName"><value>Fusion Ledger タイトルバー</value></data>
-  <data name="NavigationName"><value>Fusion Ledger ナビゲーション</value></data>
+  <data name="ProductName"><value>MolHub</value></data>
+  <data name="MainWindowTitle"><value>MolHub for Windows</value></data>
+  <data name="LoginTitle"><value>MolHub サインイン</value></data>
+  <data name="LoginWebViewName"><value>MolHub サインイン</value></data>
+  <data name="TitleBarName"><value>MolHub タイトルバー</value></data>
+  <data name="NavigationName"><value>MolHub ナビゲーション</value></data>
   <data name="Beta"><value>Beta</value></data>
   <data name="SearchPages"><value>ページを検索</value></data>
   <data name="Notifications"><value>通知</value></data>
@@ -52,7 +52,7 @@
   <data name="SettingsThemeSavedMessage"><value>テーマをすぐに適用しました。</value></data>
   <data name="SettingsSaveErrorTitle"><value>設定を保存できません</value></data>
   <data name="SettingsSaveErrorMessage"><value>設定を保存できませんでした。ローカルストレージを確認して再試行してください。</value></data>
-  <data name="VersionInfoDescription"><value>このFusion Ledger for Windowsビルドの実行時情報です。</value></data>
+  <data name="VersionInfoDescription"><value>このMolHub for Windowsビルドの実行時情報です。</value></data>
   <data name="VersionLabel"><value>バージョン</value></data>
   <data name="BetaLabel"><value>リリースチャネル</value></data>
   <data name="FrameworkLabel"><value>UIフレームワーク</value></data>

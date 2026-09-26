@@ -29,6 +29,7 @@ public sealed partial class LoginWindow : Window
         LoginWebView.Loaded += LoginWebView_Loaded;
         Closed += LoginWindow_Closed;
         ExtendsContentIntoTitleBar = false;
+        WindowIcon.Apply(this);
         ApplyLocalizedStrings();
     }
 

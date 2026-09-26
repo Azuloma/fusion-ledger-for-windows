@@ -11,5 +11,6 @@
     <Compile Include="..\..\ProfileResponseCoordinator.cs" Link="ProfileResponseCoordinator.cs" />
     <Compile Include="..\..\TitleBarLayoutPolicy.cs" Link="TitleBarLayoutPolicy.cs" />
     <Compile Include="..\..\SettingsPolicy.cs" Link="SettingsPolicy.cs" />
+    <Compile Include="..\..\AppIconAssets.cs" Link="AppIconAssets.cs" />
   </ItemGroup>
 </Project>

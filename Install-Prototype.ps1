@@ -62,7 +62,7 @@ $arguments = @{
 }
 if ($dependencyPaths.Count -gt 0) { $arguments.DependencyPath = $dependencyPaths }
 
-if ($PSCmdlet.ShouldProcess($packagePath, 'Install unsigned Fusion Ledger prototype MSIX')) {
+if ($PSCmdlet.ShouldProcess($packagePath, 'Install unsigned MolHub for Windows prototype MSIX')) {
     $unlockKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
     $unlock = Get-ItemProperty -LiteralPath $unlockKey -ErrorAction SilentlyContinue
     $allowDevelopmentWithoutDevLicense = if ($null -ne $unlock -and $unlock.PSObject.Properties.Name -contains 'AllowDevelopmentWithoutDevLicense') { [int]$unlock.AllowDevelopmentWithoutDevLicense } else { 0 }
@@ -71,7 +71,7 @@ if ($PSCmdlet.ShouldProcess($packagePath, 'Install unsigned Fusion Ledger protot
         throw 'Windows Developer Mode is required. Enable Settings > System > For developers > Developer Mode, then run this script again.'
     }
     Add-AppxPackage @arguments
-    Write-Output "Installed Fusion Ledger for Windows package $packageVersion from $packagePath"
+    Write-Output "Installed MolHub for Windows package $packageVersion from $packagePath"
 }
 else {
     Write-Output "WhatIf: validated package and $($dependencyPaths.Count) x64 dependency package(s); no installation performed."

@@ -38,16 +38,23 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         ConfigureNativeTitleBar();
-        AppTitleBar.IconSource = new ImageIconSource
-        {
-            ImageSource = new BitmapImage(new Uri("ms-appx:///Assets/fusion-ledger_ico.png"))
-        };
+        WindowIcon.Apply(this);
 
         PageSearchBox.ItemsSource = _searchSuggestions;
         ConfigureProfile();
         ConfigureAccelerators();
         ApplyLocalizedStrings();
+        RootGrid.ActualThemeChanged += (_, _) => UpdateTitleBarIcon();
         ApplySavedTheme();
+        UpdateTitleBarIcon();
+    }
+
+    private void UpdateTitleBarIcon()
+    {
+        AppTitleBar.IconSource = new ImageIconSource
+        {
+            ImageSource = new BitmapImage(new Uri(AppIconAssets.TitleBarImageUri(RootGrid.ActualTheme == ElementTheme.Light)))
+        };
     }
 
     private string L(string key) => _strings.GetString(key);

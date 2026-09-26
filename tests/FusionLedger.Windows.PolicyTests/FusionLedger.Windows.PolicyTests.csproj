@@ -16,5 +16,6 @@
     <Compile Include="..\..\FlyoutPlacementPolicy.cs" Link="FlyoutPlacementPolicy.cs" />
     <Compile Include="..\..\BridgePolicy.cs" Link="BridgePolicy.cs" />
     <Compile Include="..\..\DashboardModel.cs" Link="DashboardModel.cs" />
+    <Compile Include="..\..\ProjectsModel.cs" Link="ProjectsModel.cs" />
   </ItemGroup>
 </Project>

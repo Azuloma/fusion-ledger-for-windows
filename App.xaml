@@ -87,6 +87,29 @@
                 <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
                 <Setter Property="VerticalAlignment" Value="Center" />
             </Style>
+
+            <!-- Projects: private label and the reservation status (Available for work / Working). -->
+            <Style x:Key="ProjectPrivateBadgeStyle" TargetType="Border">
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="8,1,8,2" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="ProjectStatusAvailableDotStyle" TargetType="Ellipse">
+                <Setter Property="Fill" Value="{ThemeResource SystemFillColorSuccessBrush}" />
+            </Style>
+            <Style x:Key="ProjectStatusWorkingDotStyle" TargetType="Ellipse">
+                <Setter Property="Fill" Value="{ThemeResource SystemFillColorCautionBrush}" />
+            </Style>
+            <Style x:Key="ProjectStatusAvailableTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorSuccessBrush}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+            <Style x:Key="ProjectStatusWorkingTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

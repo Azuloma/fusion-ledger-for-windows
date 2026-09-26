@@ -164,7 +164,7 @@ public static class DashboardModel
         _ => DashboardError.Unexpected
     };
 
-    private static string? Text(JsonElement item, string property, int maxLength, bool trim = true)
+    internal static string? Text(JsonElement item, string property, int maxLength, bool trim = true)
     {
         if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty(property, out var value) || value.ValueKind != JsonValueKind.String) return null;
         var text = value.GetString();
@@ -173,12 +173,12 @@ public static class DashboardModel
         return text.Length == 0 || text.Length > maxLength ? null : text;
     }
 
-    private static DateTimeOffset? Date(JsonElement item, string property) =>
+    internal static DateTimeOffset? Date(JsonElement item, string property) =>
         Text(item, property, 40) is { } text
         && DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var value)
             ? value
             : null;
 
-    private static int Count(JsonElement item, string property) =>
-        item.TryGetProperty(property, out var value) && value.TryGetInt32(out var count) && count > 0 ? count : 0;
+    internal static int Count(JsonElement item, string property) =>
+        item.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var count) && count > 0 ? count : 0;
 }

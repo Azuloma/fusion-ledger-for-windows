@@ -126,7 +126,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.8.4", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.9.0", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -163,10 +163,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.8.4</Version>", StringComparison.Ordinal), "Version source of truth must be v0.8.4.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.8.4.0\"", StringComparison.Ordinal), "Manifest version must be v0.8.4.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.8.4", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.8.4", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.9.0</Version>", StringComparison.Ordinal), "Version source of truth must be v0.9.0.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.9.0.0\"", StringComparison.Ordinal), "Manifest version must be v0.9.0.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.9.0", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.9.0", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -345,4 +345,93 @@ Assert(captionCode.Contains("TitleBar.PreferredTheme", StringComparison.Ordinal)
 Assert(mainCode.Contains("if (language == ReadLanguage()) return;", StringComparison.Ordinal) && mainCode.Contains("if (theme == ReadTheme()) return;", StringComparison.Ordinal),
     "Settings must ignore selections equal to the saved value so opening the page reports no save.");
 
-Console.WriteLine("v0.8.4 native shell, dashboard, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+// ----- Projects (read-only) -----
+static System.Text.Json.JsonElement Json(string text) => System.Text.Json.JsonDocument.Parse(text).RootElement;
+var projectList = ProjectsModel.ParseProjectList(Json("""
+[{"id":"62cbdc9e-1","name":"Sonic Nightmare","description":"","latest":{"id":"74a6ba6e-0","title":"Sonic Nightmare","version":"v0.4.785B","createdAt":"2026-09-19T14:24:00.000Z"},"reservation":null,"updatedAt":"2026-09-19T14:24:00.000Z"},
+ {"id":"p2","name":"Splats Framework","description":"A fork","latest":null,"reservation":{"userId":"u1","username":"Azunel","startedAt":"2026-09-19T14:00:00.000Z"}},
+ {"id":"bad/id","name":"Invalid id"},{"id":"p4","name":""}]
+"""), Json("""{"limit":30,"offset":0,"nextOffset":30,"total":42}"""));
+Assert(projectList is { Total: 42, NextOffset: 30 } && projectList.Projects.Count == 2 && projectList.Projects[0].Latest?.Version == "v0.4.785B"
+    && projectList.Projects[1].Latest is null && projectList.Projects[1].Description == "A fork",
+    "Project lists must be parsed with bounded fields, valid ids and server paging.");
+Assert(ProjectsModel.ParseProjectList(Json("{}"), null) is null
+    && ProjectsModel.ParseProjectList(Json("[]"), Json("""{"nextOffset":null,"total":0}""")) is { Total: 0, NextOffset: null },
+    "Unexpected project list shapes must not render, and the end of a list has no next page.");
+Assert(DashboardModel.Parse(Json("""{"projects":[],"commits":[],"pending":{"accounts":null,"requests":"2"}}""")) is { PendingApprovals: 0 },
+    "Non-numeric counters must read as zero instead of failing.");
+Assert(ProjectsModel.StateFor(null, "azunel") == ReservationState.Available
+    && ProjectsModel.StateFor(projectList!.Projects[1].Reservation, "azunel") == ReservationState.Yours
+    && ProjectsModel.StateFor(new ProjectReservation("kalvin", null), "azunel") == ReservationState.Other
+    && ProjectsModel.StateFor(new ProjectReservation(null, null), "azunel") == ReservationState.Other,
+    "Reservation state must come from the server reservation only.");
+
+var projectDetail = ProjectsModel.ParseProjectDetail(Json("""
+{"project":{"id":"p1","name":"Sonic Nightmare","description":"","createdAt":null,"latest":{"id":"c1","title":"Newest","version":"v2","createdAt":"2026-09-19T14:24:00.000Z"},"reservation":{"username":"kalvin","startedAt":null}},
+ "members":[{"id":"u1","username":"madnessprime","role":"owner","avatar":null},{"id":"u2","username":"azunel","role":"admin"},{"id":"u3","username":"kalvin","role":"member"},{"username":""}],
+ "commits":[{"id":"c1","projectId":"p1","projectName":"Sonic Nightmare","title":"Newest","changes":"fixes","url":"https://drive.example.com/f","version":"v2","createdAt":"2026-09-19T14:24:00.000Z","author":{"username":"kalvin"}},
+            {"id":"c0","projectId":"p1","title":"Older","changes":"","url":"javascript:alert(1)","version":"","createdAt":"2026-09-18T01:00:00.000Z","author":{"username":"azunel"}}],
+ "summary":{"total":5,"projects":1,"contributors":2,"versions":4}}
+"""));
+Assert(projectDetail is { Members.Count: 3, Commits.Count: 2, Summary: { Total: 5, Contributors: 2, Versions: 4 } } && projectDetail.Head?.Id == "c1"
+    && projectDetail.Project.CreatedAt is null && projectDetail.Project.Reservation?.Username == "kalvin",
+    "Project overview must use the server summary, members and head commit without inventing values.");
+Assert(projectDetail!.Commits[0].ShareUri?.Host == "drive.example.com" && projectDetail.Commits[1].ShareUri is null
+    && ProjectsModel.SafeShareUri("https://user:pass@example.com/x") is null && ProjectsModel.SafeShareUri("file:///C:/x.mfa") is null
+    && ProjectsModel.SafeShareUri("http://example.com/x") is not null && ProjectsModel.SafeShareUri("https://example.com/" + new string('a', 2100)) is null,
+    "Share links must be absolute http(s) without credentials before they can be opened.");
+Assert(ProjectsModel.RoleKey("owner") == "Projects_RoleOwner" && ProjectsModel.RoleKey("admin") == "Projects_RoleSiteAdmin" && ProjectsModel.RoleKey("member") == "Projects_RoleMember"
+    && ProjectsModel.VersionLabel("", "3f870070-aaaa") == "3f87007" && ProjectsModel.VersionLabel("v0.4.8β", "x") == "v0.4.8β",
+    "Member roles and version labels must match the web project page.");
+
+var commitDetail = ProjectsModel.ParseCommitDetail(Json("""
+{"id":"c1","projectId":"p1","projectName":"Sonic Nightmare","title":"Newest","changes":"fixes","url":"https://drive.example.com/f","version":"v2","createdAt":"2026-09-19T14:24:00.000Z","author":{"username":"kalvin"},"baseSummary":{"id":"c0","title":"Older","version":"","createdAt":"2026-09-18T01:00:00.000Z"}}
+"""));
+Assert(commitDetail is { Base.Id: "c0", Commit.ProjectId: "p1" } && ProjectsModel.ParseCommitDetail(Json("""{"id":"c1","title":"x","baseSummary":null}""")) is { Base: null }
+    && ProjectsModel.ParseCommitDetail(Json("""{"id":"c1"}""")) is null,
+    "Commit details must carry the same-project base summary or report an initial version.");
+
+var commitPayload = ProjectsModel.CommitsPayload("p1", new CommitFilter("  bug  ", 30, true), 60)!;
+Assert(commitPayload["projectId"]!.GetValue<string>() == "p1" && commitPayload["q"]!.GetValue<string>() == "bug" && commitPayload["days"]!.GetValue<int>() == 30
+    && commitPayload["latest"]!.GetValue<int>() == 1 && commitPayload["offset"]!.GetValue<int>() == 60 && commitPayload["limit"]!.GetValue<int>() == ProjectsModel.PageSize
+    && ProjectsModel.CommitsPayload("p1", new CommitFilter("", 5, false), 0) is { } noDays && !noDays.ContainsKey("days") && !noDays.ContainsKey("latest") && !noDays.ContainsKey("q")
+    && ProjectsModel.CommitsPayload("../admin", CommitFilter.None, 0) is null && ProjectsModel.ProjectPayload("a b") is null && ProjectsModel.CommitPayload("c1") is not null
+    && ProjectsModel.ListPayload(new string('q', 200), 9999)["q"]!.GetValue<string>().Length == 150 && ProjectsModel.ListPayload(null, 9999)["offset"]!.GetValue<int>() == 5000,
+    "Bridge payloads must use only valid ids and the documented filter bounds.");
+foreach (var command in new[] { "projects", "project", "projectCommits", "commit" })
+    Assert(BridgePolicy.IsKnownCommand(command) && !BridgePolicy.IsWrite(command), $"Projects must use only the read command {command}.");
+
+var groups = ProjectsModel.GroupByDay(projectDetail.Commits, TimeZoneInfo.Utc);
+Assert(groups.Count == 2 && groups[0].Day == new DateOnly(2026, 9, 19) && groups[1].Commits.Count == 1
+    && ProjectsModel.FormatDay(new DateOnly(2026, 9, 19), "en-US") == "September 19, 2026" && ProjectsModel.FormatDay(new DateOnly(2026, 9, 19), "ja-JP") == "2026年9月19日"
+    && ProjectsModel.FormatDay(null, "en-US") == string.Empty,
+    "Commit lists must be grouped by local day like the web history timeline.");
+Assert(ProjectsModel.ErrorFor(new BridgeResult("r", 403, false, null, null, "PROJECT_FORBIDDEN", null, false, BridgeOutcome.None)) == ProjectsError.NoAccess
+    && ProjectsModel.ErrorFor(new BridgeResult("r", 404, false, null, null, "NOT_FOUND", null, false, BridgeOutcome.None)) == ProjectsError.NoAccess
+    && ProjectsModel.ErrorFor(new BridgeResult("r", 403, false, null, null, "NOT_APPROVED", null, false, BridgeOutcome.None)) == ProjectsError.PendingApproval
+    && ProjectsModel.ErrorFor(new BridgeResult("r", 401, false, null, null, "UNAUTHORIZED", null, false, BridgeOutcome.None)) == ProjectsError.SessionEnded
+    && ProjectsModel.ErrorFor(new BridgeResult("r", 503, false, null, null, "MAINTENANCE", null, false, BridgeOutcome.None)) == ProjectsError.Maintenance
+    && ProjectsModel.ErrorFor(BridgeResult.HostFailure("r", "TIMEOUT", true, BridgeOutcome.None)) == ProjectsError.Connection,
+    "Projects errors must map to connection, session, approval, no-access, maintenance and rate-limit states.");
+
+var projectsCode = File.ReadAllText(Path.Combine(sourceRoot, "ProjectsView.cs")) + File.ReadAllText(Path.Combine(sourceRoot, "ProjectsView.Project.cs"));
+var projectKeys = System.Text.RegularExpressions.Regex.Matches(projectsCode + File.ReadAllText(Path.Combine(sourceRoot, "PageParts.cs")), "\"(Projects_[A-Za-z0-9]+)\"")
+    .Select(m => m.Groups[1].Value).Concat(new[] { "Projects_Last7Days", "Projects_Last30Days", "Projects_Last90Days", "Projects_RoleOwner", "Projects_RoleSiteAdmin", "Projects_RoleMember" })
+    .Distinct().ToList();
+foreach (var locale in new[] { "en-US", "ja-JP" })
+{
+    var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
+    foreach (var key in projectKeys) Assert(resource.Contains($"<data name=\"{key}\">", StringComparison.Ordinal), $"Missing projects string {key} in {locale}");
+}
+Assert(!projectsCode.Contains("startReservation", StringComparison.Ordinal) && !projectsCode.Contains("publishCommit", StringComparison.Ordinal)
+    && !projectsCode.Contains("manageProject", StringComparison.Ordinal) && !projectsCode.Contains("createProject", StringComparison.Ordinal)
+    && projectsCode.Contains("_p.StorageNote()", StringComparison.Ordinal)
+    && projectsCode.Contains("ProjectsModel.SafeShareUri(uri.AbsoluteUri) is not { } safe", StringComparison.Ordinal)
+    && projectsCode.Contains("Launcher.LaunchUriAsync(safe)", StringComparison.Ordinal),
+    "Projects must stay read-only, show the storage note with share links and open only validated links in the browser.");
+Assert(mainCode.Contains("if (page == NativePage.Projects) return CreateProjectsPage();", StringComparison.Ordinal)
+    && mainCode.Contains("_projects?.TryGoBack() == true", StringComparison.Ordinal)
+    && dashboardCode.Contains("_openProject(project.Id, project.Name)", StringComparison.Ordinal),
+    "Projects must be the native page, Back must walk its screens and the Dashboard must open projects natively.");
+
+Console.WriteLine("v0.9.0 native shell, dashboard, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

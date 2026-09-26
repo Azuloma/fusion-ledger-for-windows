@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.9.0
+
+- Added the native, read-only Projects page on the data bridge (`projects`, `project`, `projectCommits`, `commit`), following the web project pages. The list shows your profile, accessible projects, a project search (name and description, up to 150 characters), rows with the private label, description, latest version, last update and the reservation state ("Available for work" or "Working" with the holder), and "Load more" paging.
+- A project opens inside the page with a breadcrumb (the title bar Back and Alt+Left walk back through it). Overview: the latest versions (up to 8, with "View all history"), the project overview with the latest change, "Open MFA" and "Details", the work reservation, About (project type, visibility, created, last updated, copyable project ID) and team access with roles. Commits: search, date range (all time / 7 / 30 / 90 days), latest versions only, grouped by day, paged. Commit details show the version, version ID, the version it was based on (or "Initial version"), the author and the full changes.
+- Share links open only in the default browser, only for absolute http(s) URLs without credentials, and name the destination host first; the external-storage note is shown wherever share links appear. Reservation, publishing, member management and project settings are not rendered until they exist natively.
+- Dashboard: Top projects and Your work entries open the native project page.
+- Dashboard counters read a non-numeric value (for example `null`) as zero instead of failing the whole parse.
+
 ## v0.8.4
 
 - The caption buttons (minimize, maximize, close) follow the app theme in the main and sign-in windows through `CaptionButtonTheme` (`AppWindowTitleBar.PreferredTheme`). With the Light app theme on a dark Windows mode they were drawn white on white and looked missing. High Contrast keeps the system colors.

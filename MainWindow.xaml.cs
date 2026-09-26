@@ -23,6 +23,7 @@ public sealed partial class MainWindow : Window
     private readonly ThemeService _themeService = new();
     private readonly WebBridgeClient _bridge = new();
     private DashboardView? _dashboard;
+    private ProjectsView? _projects;
     private string _bridgeStatusKey = "BridgeConnecting";
     private TextBlock? _bridgeStatusText;
     private bool _signingOut;
@@ -255,13 +256,21 @@ public sealed partial class MainWindow : Window
         if (remember && page != _currentPage) _history.Push(_currentPage);
         _currentPage = page;
         ContentFrame.Content = CreatePlaceholder(page);
-        AppTitleBar.IsBackButtonVisible = NativePageCatalog.IsNested(page);
-        AppTitleBar.IsBackButtonEnabled = _history.Count > 0;
+        UpdateBackButton();
         SyncNavigationSelection(page);
+    }
+
+    /// <summary>Back is shown for nested pages and for a project or commit opened inside Projects.</summary>
+    private void UpdateBackButton()
+    {
+        var projectsNested = _currentPage == NativePage.Projects && _projects?.CanGoBack == true;
+        AppTitleBar.IsBackButtonVisible = NativePageCatalog.IsNested(_currentPage) || projectsNested;
+        AppTitleBar.IsBackButtonEnabled = _history.Count > 0 || projectsNested;
     }
 
     private void GoBack()
     {
+        if (_currentPage == NativePage.Projects && _projects?.TryGoBack() == true) return;
         if (_history.Count == 0) return;
         var page = _history.Pop();
         NavigateTo(page, false);
@@ -270,6 +279,7 @@ public sealed partial class MainWindow : Window
     private FrameworkElement CreatePlaceholder(NativePage page)
     {
         if (page == NativePage.Dashboard) return CreateDashboardPage();
+        if (page == NativePage.Projects) return CreateProjectsPage();
         if (page == NativePage.AppSettings) return CreateSettingsPage();
         if (page == NativePage.VersionInfo) return CreateVersionInfoPage();
 
@@ -284,9 +294,27 @@ public sealed partial class MainWindow : Window
         _dashboard ??= new DashboardView(L, _user, ReadLanguage(),
             () => _bridge.RequestAsync("dashboard"),
             page => NavigateTo(page),
+            OpenProject,
             () => _ = SignOutAsync());
         _ = _dashboard.EnsureLoadedAsync();
         return _dashboard;
+    }
+
+    private FrameworkElement CreateProjectsPage()
+    {
+        _projects ??= new ProjectsView(L, _user, ReadLanguage(),
+            (command, payload) => _bridge.RequestAsync(command, payload),
+            () => _ = SignOutAsync(),
+            UpdateBackButton);
+        _ = _projects.EnsureLoadedAsync();
+        return _projects;
+    }
+
+    /// <summary>Opens a project overview from another page (the list stays underneath for Back).</summary>
+    private void OpenProject(string projectId, string name)
+    {
+        NavigateTo(NativePage.Projects);
+        _projects?.OpenProject(projectId, name);
     }
 
     private FrameworkElement CreateSettingsPage()

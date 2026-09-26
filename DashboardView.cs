@@ -25,6 +25,7 @@ internal sealed class DashboardView : UserControl
     private readonly string _language;
     private readonly Func<Task<BridgeResult>> _load;
     private readonly Action<NativePage> _navigate;
+    private readonly Action<string, string> _openProject;
     private readonly Action _signInAgain;
     private readonly InfoBar _statusBar = new() { IsClosable = false, IsOpen = false };
     private readonly ContentControl _body = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
@@ -37,13 +38,14 @@ internal sealed class DashboardView : UserControl
     private int _generation;
 
     public DashboardView(Func<string, string> localize, AuthenticatedUser user, string language,
-        Func<Task<BridgeResult>> load, Action<NativePage> navigate, Action signInAgain)
+        Func<Task<BridgeResult>> load, Action<NativePage> navigate, Action<string, string> openProject, Action signInAgain)
     {
         _l = localize;
         _user = user;
         _language = language;
         _load = load;
         _navigate = navigate;
+        _openProject = openProject;
         _signInAgain = signInAgain;
 
         var title = new TextBlock { Text = _l("Page_Dashboard"), Style = Res("TitleTextBlockStyle") };
@@ -234,7 +236,7 @@ internal sealed class DashboardView : UserControl
             ToolTipService.SetToolTip(name, project.Name);
             Grid.SetColumn(name, 1);
             row.Children.Add(name);
-            list.Children.Add(row);
+            list.Children.Add(ProjectButton(row, project));
         }
         list.Children.Add(LinkButton("Dashboard_ViewAllProjects", () => _navigate(NativePage.Projects), new Thickness(-8, 4, 0, 0)));
         return Card("Dashboard_TopProjects", "", list);
@@ -295,9 +297,26 @@ internal sealed class DashboardView : UserControl
                 Text = since.Length > 0 ? $"{_l("Dashboard_ReservedSince")} {since}" : _l("Dashboard_ReservedSince"),
                 Style = Res("DashboardCaptionTextStyle")
             });
-            list.Children.Add(item);
+            list.Children.Add(ProjectButton(item, project));
         }
         return Card("Dashboard_YourWork", "", list);
+    }
+
+    /// <summary>Wraps a project row in a subtle full-width button that opens the native project overview.</summary>
+    private Button ProjectButton(FrameworkElement content, DashboardProject project)
+    {
+        var button = new Button
+        {
+            Content = content,
+            Style = Res("SubtleButtonStyle"),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Padding = new Thickness(8, 0, 8, 0),
+            Margin = new Thickness(-8, 0, -8, 0)
+        };
+        AutomationProperties.SetName(button, project.Name);
+        button.Click += (_, _) => _openProject(project.Id, project.Name);
+        return button;
     }
 
     private FrameworkElement FeedHeader()

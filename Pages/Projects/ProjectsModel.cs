@@ -52,12 +52,15 @@ public sealed record CommitBase(string Id, string Title, string Version, DateTim
 
 public sealed record CommitDetail(ProjectCommit Commit, CommitBase? Base);
 
-/// <summary>Commit list filters with the same bounds as the web (`q` ≤ 150 characters, `days` 0/7/30/90, latest only).</summary>
-public sealed record CommitFilter(string Query, int Days, bool LatestOnly)
+/// <summary>
+/// Commit list filters with the same bounds as the web (`q` ≤ 150 characters, `days` 0/7/30/90, latest only). `Project`
+/// is used only by the personal history; a project's own commit list already names its project in the path.
+/// </summary>
+public sealed record CommitFilter(string Query, int Days, bool LatestOnly, string Project = "")
 {
     public static readonly CommitFilter None = new(string.Empty, 0, false);
 
-    public bool IsActive => Query.Length > 0 || Days != 0 || LatestOnly;
+    public bool IsActive => Query.Length > 0 || Days != 0 || LatestOnly || Project.Length > 0;
 }
 
 public enum ReservationState
@@ -124,18 +127,21 @@ public static partial class ProjectsModel
     public static JsonObject? CommitsPayload(string projectId, CommitFilter filter, int offset)
     {
         if (!IsValidId(projectId)) return null;
-        var payload = new JsonObject
-        {
-            ["projectId"] = projectId,
-            ["limit"] = PageSize,
-            ["offset"] = Math.Clamp(offset, 0, MaxOffset)
-        };
+        var payload = new JsonObject { ["projectId"] = projectId };
+        AddCommitFilter(payload, filter, offset);
+        return payload;
+    }
+
+    /// <summary>Adds paging and the `q`/`days`/`latest` filters shared by project commits and the personal history.</summary>
+    internal static void AddCommitFilter(JsonObject payload, CommitFilter filter, int offset)
+    {
+        payload["limit"] = PageSize;
+        payload["offset"] = Math.Clamp(offset, 0, MaxOffset);
         var q = NormalizeQuery(filter.Query);
         if (q.Length > 0) payload["q"] = q;
         if (filter.Days != 0 && DayOptions.Contains(filter.Days)) payload["days"] = filter.Days;
         // The server only treats latest=1 as set.
         if (filter.LatestOnly) payload["latest"] = 1;
-        return payload;
     }
 
     public static JsonObject? CommitPayload(string commitId) =>
@@ -302,7 +308,7 @@ public static partial class ProjectsModel
             DashboardModel.Date(item, "updatedAt"));
     }
 
-    private static List<ProjectCommit> ParseCommits(JsonElement array) =>
+    internal static List<ProjectCommit> ParseCommits(JsonElement array) =>
         array.ValueKind == JsonValueKind.Array
             ? array.EnumerateArray().Take(MaxItems).Select(ParseCommit).OfType<ProjectCommit>().ToList()
             : [];
@@ -335,7 +341,7 @@ public static partial class ProjectsModel
             DashboardModel.Date(item, "createdAt"));
     }
 
-    private static (int Total, int? NextOffset) Paging(JsonElement? meta, int count)
+    internal static (int Total, int? NextOffset) Paging(JsonElement? meta, int count)
     {
         if (meta is not { ValueKind: JsonValueKind.Object } m) return (count, null);
         // TryGetInt32 throws on non-numbers, and `nextOffset` is null at the end of a list.

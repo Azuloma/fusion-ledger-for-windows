@@ -7,15 +7,24 @@ using Microsoft.UI.Xaml.Shapes;
 
 namespace FusionLedger.Windows;
 
+/// <summary>The first screen of a <see cref="ProjectsView"/>: the Projects page or the Commit history page.</summary>
+internal enum ProjectsRoot
+{
+    List,
+    History
+}
+
 /// <summary>
 /// Read-only native Projects: the project list (`projects`), a project overview with its commits (`project`,
 /// `projectCommits`) and commit details (`commit`), navigated inside this page with a breadcrumb. It follows the web
 /// project pages; reservation, publishing and management actions are not rendered until they exist natively.
+/// The Commit history page is a second instance whose first screen is the personal history (`history`).
 /// </summary>
 internal sealed partial class ProjectsView : UserControl
 {
     private static readonly TimeSpan StaleAfter = TimeSpan.FromSeconds(60);
 
+    private readonly ProjectsRoot _root;
     private readonly PageParts _p;
     private readonly AuthenticatedUser _user;
     private readonly string _language;
@@ -39,8 +48,10 @@ internal sealed partial class ProjectsView : UserControl
     private Button? _loadMoreProjects;
 
     public ProjectsView(Func<string, string> localize, AuthenticatedUser user, string language,
-        Func<string, JsonObject?, Task<BridgeResult>> request, Action signInAgain, Action navigationChanged)
+        Func<string, JsonObject?, Task<BridgeResult>> request, Action signInAgain, Action navigationChanged,
+        ProjectsRoot firstScreen = ProjectsRoot.List)
     {
+        _root = firstScreen;
         _p = new PageParts(localize);
         _user = user;
         _language = language;
@@ -67,6 +78,7 @@ internal sealed partial class ProjectsView : UserControl
     private enum ScreenKind
     {
         List,
+        History,
         Project,
         Commit
     }
@@ -80,6 +92,9 @@ internal sealed partial class ProjectsView : UserControl
         public TwoColumnLayout? Layout { get; set; }
         public double ScrollOffset { get; set; }
         public Func<Task>? Load { get; set; }
+        /// <summary>Reloads data into the already built content (the history keeps its filters).</summary>
+        public Func<Task>? Refresh { get; set; }
+        public DateTimeOffset LoadedAt { get; set; }
     }
 
     private Screen? Current => _stack.Count > 0 ? _stack[^1] : null;
@@ -88,16 +103,20 @@ internal sealed partial class ProjectsView : UserControl
 
     private string L(string key) => _p.L(key);
 
-    /// <summary>Shows the list on first display and refreshes it when it is older than a minute.</summary>
+    /// <summary>Shows the first screen on first display and refreshes it when it is older than a minute.</summary>
     public Task EnsureLoadedAsync()
     {
-        if (_stack.Count == 0) _stack.Add(ListScreen());
+        if (_stack.Count == 0) _stack.Add(RootScreen());
         ShowCurrent();
-        if (Current is { Kind: ScreenKind.List } list && (list.Content is null || DateTimeOffset.Now - _listLoadedAt > StaleAfter))
-        {
-            return LoadListAsync(append: false);
-        }
-        return Task.CompletedTask;
+        if (_stack.Count == 1 && Current is { Content: null, Load: { } load }) return load();
+        return RefreshRootIfStale();
+    }
+
+    private Task RefreshRootIfStale()
+    {
+        if (_stack.Count != 1 || Current is not { Content: not null } root) return Task.CompletedTask;
+        if (root.Kind == ScreenKind.List) return DateTimeOffset.Now - _listLoadedAt > StaleAfter ? LoadListAsync(append: false) : Task.CompletedTask;
+        return root.Refresh is { } refresh && DateTimeOffset.Now - root.LoadedAt > StaleAfter ? refresh() : Task.CompletedTask;
     }
 
     public bool TryGoBack()
@@ -111,10 +130,12 @@ internal sealed partial class ProjectsView : UserControl
     public void OpenProject(string projectId, string name)
     {
         if (!ProjectsModel.IsValidId(projectId)) return;
-        if (_stack.Count == 0) _stack.Add(ListScreen());
+        if (_stack.Count == 0) _stack.Add(RootScreen());
         _stack.RemoveRange(1, _stack.Count - 1);
         PushProject(projectId, name);
     }
+
+    private Screen RootScreen() => _root == ProjectsRoot.History ? HistoryScreen() : ListScreen();
 
     private Screen ListScreen() => new(ScreenKind.List, string.Empty, L("Page_Projects")) { Load = () => LoadListAsync(append: false) };
 
@@ -132,7 +153,7 @@ internal sealed partial class ProjectsView : UserControl
         _stack.RemoveRange(index + 1, _stack.Count - index - 1);
         ShowCurrent();
         if (Current is { Content: null, Load: { } load }) _ = load();
-        else if (Current is { Kind: ScreenKind.List } && DateTimeOffset.Now - _listLoadedAt > StaleAfter) _ = LoadListAsync(append: false);
+        else _ = RefreshRootIfStale();
     }
 
     private void ShowCurrent(bool scrollToTop = false)
@@ -167,15 +188,16 @@ internal sealed partial class ProjectsView : UserControl
     private void ShowError(Screen screen, ProjectsError error, Func<Task> retry)
     {
         if (Current != screen) return;
+        var history = _root == ProjectsRoot.History;
         var (severity, titleKey, messageKey) = error switch
         {
             ProjectsError.Connection => (InfoBarSeverity.Error, "Dashboard_ErrorConnectionTitle", "Dashboard_ErrorConnection"),
-            ProjectsError.SessionEnded => (InfoBarSeverity.Warning, "Dashboard_ErrorSessionTitle", "Projects_ErrorSession"),
+            ProjectsError.SessionEnded => (InfoBarSeverity.Warning, "Dashboard_ErrorSessionTitle", history ? "History_ErrorSession" : "Projects_ErrorSession"),
             ProjectsError.PendingApproval => (InfoBarSeverity.Informational, "Dashboard_ErrorPendingTitle", "Dashboard_ErrorPending"),
             ProjectsError.Maintenance => (InfoBarSeverity.Warning, "Dashboard_ErrorMaintenanceTitle", "Dashboard_ErrorMaintenance"),
             ProjectsError.RateLimited => (InfoBarSeverity.Warning, "Dashboard_ErrorRateLimitTitle", "Dashboard_ErrorRateLimit"),
-            ProjectsError.NoAccess => (InfoBarSeverity.Warning, "Projects_ErrorNoAccessTitle", "Projects_ErrorNoAccess"),
-            _ => (InfoBarSeverity.Error, "Projects_ErrorUnexpectedTitle", "Dashboard_ErrorUnexpected")
+            ProjectsError.NoAccess => (InfoBarSeverity.Warning, "Projects_ErrorNoAccessTitle", history ? "History_ErrorNoAccess" : "Projects_ErrorNoAccess"),
+            _ => (InfoBarSeverity.Error, history ? "History_ErrorUnexpectedTitle" : "Projects_ErrorUnexpectedTitle", "Dashboard_ErrorUnexpected")
         };
         var action = new Button();
         if (error == ProjectsError.SessionEnded)
@@ -183,14 +205,15 @@ internal sealed partial class ProjectsView : UserControl
             action.Content = L("Dashboard_SignInAgain");
             action.Click += (_, _) => _signInAgain();
         }
-        else if (error == ProjectsError.NoAccess && screen.Kind != ScreenKind.List)
+        else if (error == ProjectsError.NoAccess && screen != _stack[0])
         {
-            // Membership may have changed: go back to a refreshed list instead of retrying.
-            action.Content = L("Projects_BackToProjects");
+            // Membership may have changed: go back to the refreshed first screen instead of retrying.
+            action.Content = L(history ? "History_BackToHistory" : "Projects_BackToProjects");
             action.Click += (_, _) =>
             {
                 PopTo(0);
-                _ = LoadListAsync(append: false);
+                if (_stack[0].Kind == ScreenKind.List) _ = LoadListAsync(append: false);
+                else if (_stack[0].Refresh is { } refresh) _ = refresh();
             };
         }
         else

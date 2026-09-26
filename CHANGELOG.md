@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.10.0
+
+- Added the native, read-only Commit history page on the data bridge (`history`), following the web "Your commit history" page. The server always limits it to your own commits. It shows the server summary (total commits, projects, named versions) for the current filters, a project filter (all projects or one), commit search, date range (all time / 7 / 30 / 90 days) and latest versions only, commits grouped by day with the project name, and "Load more" paging. Commits and projects open inside the page with a breadcrumb; the title bar Back and Alt+Left walk back through it. The Dashboard's "View your commit history" link opens it.
+- The project Commits tab and the history share one commit timeline (`BuildCommitTimeline`).
+
 ## v0.9.2
 
 - The project list's "Latest version" and "Last updated" line wraps (`InlineWrapPanel`) in a narrow window instead of clipping the date; the version label and its badge stay together. Commit rows wrap their version badge and "author · date" line the same way.

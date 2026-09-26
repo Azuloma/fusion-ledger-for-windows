@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -8,6 +9,9 @@ namespace FusionLedger.Windows;
 internal sealed partial class ProjectsView
 {
     private const int CommitPreviewLength = 160;
+
+    /// <summary>Below this filter-bar width the date range and "latest only" wrap under the search box.</summary>
+    private const double NarrowFilterWidth = 560;
 
     // ----- Project overview -----
 
@@ -247,9 +251,39 @@ internal sealed partial class ProjectsView
         return _p.Card("Projects_TeamAccess", "", list);
     }
 
-    // ----- Project commits -----
+    // ----- Commit timeline (project Commits tab and the personal history) -----
 
-    private FrameworkElement BuildCommitsTab(Screen screen, ProjectSummary project)
+    /// <summary>A parsed page of commits; `Summary` is set only by the personal history.</summary>
+    private sealed record TimelinePage(IReadOnlyList<ProjectCommit> Commits, int Total, int? NextOffset, HistorySummary? Summary);
+
+    private FrameworkElement BuildCommitsTab(Screen screen, ProjectSummary project) =>
+        BuildCommitTimeline(
+            screen,
+            "projectCommits",
+            (filter, offset) => ProjectsModel.CommitsPayload(project.Id, filter, offset),
+            result => result.Data is { } data && ProjectsModel.ParseCommitPage(data, result.Meta) is { } page
+                ? new TimelinePage(page.Commits, page.Total, page.NextOffset, null)
+                : null,
+            projectOptions: null,
+            showProject: false,
+            onReload: null,
+            onPage: null,
+            out _);
+
+    /// <summary>
+    /// Search, date range, latest only (and, for the history, a project filter), a count line, commits grouped by day
+    /// and "Load more". `onReload` runs when a first page starts loading; `reload` reloads it with the current filters.
+    /// </summary>
+    private FrameworkElement BuildCommitTimeline(
+        Screen screen,
+        string command,
+        Func<CommitFilter, int, JsonObject?> payload,
+        Func<BridgeResult, TimelinePage?> parse,
+        IReadOnlyList<ProjectOption>? projectOptions,
+        bool showProject,
+        Action? onReload,
+        Action<TimelinePage>? onPage,
+        out Func<Task> reload)
     {
         var filter = CommitFilter.None;
         var commits = new List<ProjectCommit>();
@@ -258,10 +292,23 @@ internal sealed partial class ProjectsView
         var loading = false;
 
         var root = new StackPanel { Spacing = 12 };
-        var bar = new Grid { ColumnSpacing = 8 };
+        ComboBox? projectFilter = null;
+        if (projectOptions is { Count: > 0 })
+        {
+            // Its own row, so the search box keeps its width in a narrow window.
+            projectFilter = new ComboBox { MinWidth = 220, MaxWidth = 360 };
+            projectFilter.Items.Add(new ComboBoxItem { Content = L("History_AllProjects"), Tag = string.Empty });
+            foreach (var option in projectOptions) projectFilter.Items.Add(new ComboBoxItem { Content = option.Name, Tag = option.Id });
+            projectFilter.SelectedIndex = 0;
+            AutomationProperties.SetName(projectFilter, L("History_ProjectFilter"));
+            root.Children.Add(projectFilter);
+        }
+        var bar = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
         bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         bar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         bar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        bar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        bar.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         var search = new AutoSuggestBox { PlaceholderText = L("Projects_CommitSearchPlaceholder"), QueryIcon = new SymbolIcon(Symbol.Find) };
         AutomationProperties.SetName(search, L("Projects_CommitSearchPlaceholder"));
         bar.Children.Add(search);
@@ -269,11 +316,23 @@ internal sealed partial class ProjectsView
         foreach (var option in ProjectsModel.DayOptions) days.Items.Add(L(option == 0 ? "Projects_AllTime" : $"Projects_Last{option}Days"));
         days.SelectedIndex = 0;
         AutomationProperties.SetName(days, L("Projects_DateRange"));
-        Grid.SetColumn(days, 1);
         bar.Children.Add(days);
         var latestOnly = new CheckBox { Content = L("Projects_LatestOnly"), MinWidth = 0 };
-        Grid.SetColumn(latestOnly, 2);
         bar.Children.Add(latestOnly);
+        // One row when wide; below NarrowFilterWidth the date range and "latest only" move under the search box.
+        void LayoutBar(double width)
+        {
+            var narrow = width > 0 && width < NarrowFilterWidth;
+            Grid.SetColumnSpan(search, narrow ? 3 : 1);
+            Grid.SetRow(days, narrow ? 1 : 0);
+            Grid.SetColumn(days, narrow ? 0 : 1);
+            days.HorizontalAlignment = HorizontalAlignment.Left;
+            Grid.SetRow(latestOnly, narrow ? 1 : 0);
+            Grid.SetColumn(latestOnly, narrow ? 1 : 2);
+            Grid.SetColumnSpan(latestOnly, narrow ? 2 : 1);
+        }
+        LayoutBar(0);
+        bar.SizeChanged += (_, e) => LayoutBar(e.NewSize.Width);
         root.Children.Add(bar);
 
         var summaryRow = new Grid { ColumnSpacing = 8 };
@@ -300,13 +359,17 @@ internal sealed partial class ProjectsView
             loading = true;
             more.IsEnabled = false;
             var requested = filter;
-            if (!append) timeline.Children.Clear();
-            if (!append) timeline.Children.Add(_p.LoadingIndicator("Projects_Loading"));
-            var result = await _request("projectCommits", ProjectsModel.CommitsPayload(project.Id, requested, append ? next ?? 0 : 0));
+            if (!append)
+            {
+                onReload?.Invoke();
+                timeline.Children.Clear();
+                timeline.Children.Add(_p.LoadingIndicator("Projects_Loading"));
+            }
+            var result = await _request(command, payload(requested, append ? next ?? 0 : 0));
             loading = false;
             more.IsEnabled = true;
             if (requested != filter) return;
-            var page = result.Ok && result.Data is { } data ? ProjectsModel.ParseCommitPage(data, result.Meta) : null;
+            var page = result.Ok ? parse(result) : null;
             if (page is null)
             {
                 if (!append) timeline.Children.Clear();
@@ -317,7 +380,9 @@ internal sealed partial class ProjectsView
             commits.AddRange(page.Commits.Where(commit => commits.All(existing => existing.Id != commit.Id)));
             next = page.NextOffset;
             total = page.Total;
+            screen.LoadedAt = DateTimeOffset.Now;
             if (Current == screen) _statusBar.IsOpen = false;
+            onPage?.Invoke(page);
             Render();
         }
 
@@ -340,7 +405,7 @@ internal sealed partial class ProjectsView
                 foreach (var commit in group)
                 {
                     if (list.Children.Count > 0) list.Children.Add(PageParts.Divider());
-                    list.Children.Add(CommitRow(commit));
+                    list.Children.Add(CommitRow(commit, showProject));
                 }
                 section.Children.Add(new Border { Style = PageParts.Res("DashboardCardStyle"), Child = list });
                 timeline.Children.Add(section);
@@ -351,7 +416,8 @@ internal sealed partial class ProjectsView
 
         void Apply()
         {
-            var updated = new CommitFilter(ProjectsModel.NormalizeQuery(search.Text), ProjectsModel.DayOptions[Math.Max(0, days.SelectedIndex)], latestOnly.IsChecked == true);
+            var project = projectFilter?.SelectedItem is ComboBoxItem { Tag: string id } ? id : string.Empty;
+            var updated = new CommitFilter(ProjectsModel.NormalizeQuery(search.Text), ProjectsModel.DayOptions[Math.Max(0, days.SelectedIndex)], latestOnly.IsChecked == true, project);
             if (updated == filter && commits.Count > 0) return;
             filter = updated;
             next = null;
@@ -361,20 +427,27 @@ internal sealed partial class ProjectsView
         search.QuerySubmitted += (_, _) => Apply();
         days.SelectionChanged += (_, _) => Apply();
         latestOnly.Click += (_, _) => Apply();
+        if (projectFilter is not null) projectFilter.SelectionChanged += (_, _) => Apply();
         clearFilters = () =>
         {
             search.Text = string.Empty;
             days.SelectedIndex = 0;
             latestOnly.IsChecked = false;
+            if (projectFilter is not null) projectFilter.SelectedIndex = 0;
             Apply();
         };
         more.Click += async (_, _) => await LoadAsync(append: true);
         clear.Visibility = Visibility.Collapsed;
+        reload = () =>
+        {
+            next = null;
+            return LoadAsync(append: false);
+        };
         _ = LoadAsync(append: false);
         return root;
     }
 
-    private FrameworkElement CommitRow(ProjectCommit commit)
+    private FrameworkElement CommitRow(ProjectCommit commit, bool showProject)
     {
         var row = new Grid { ColumnSpacing = 12, Padding = new Thickness(16, 12, 16, 12) };
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -390,7 +463,12 @@ internal sealed partial class ProjectsView
         }
         var meta = new InlineWrapPanel();
         meta.Children.Add(PageParts.VersionBadge(ProjectsModel.VersionLabel(commit.Version, commit.Id)));
-        meta.Children.Add(Centered(PageParts.Caption(JoinDot(commit.AuthorName, DashboardModel.FormatDate(commit.CreatedAt, _language)))));
+        // The personal history names the project (the author is always you); a project's list names the author.
+        var withProject = showProject && commit.ProjectId.Length > 0 && commit.ProjectName.Length > 0;
+        if (withProject) meta.Children.Add(ProjectLink(commit.ProjectId, commit.ProjectName, 14));
+        meta.Children.Add(Centered(PageParts.Caption(withProject
+            ? DashboardModel.FormatDate(commit.CreatedAt, _language)
+            : JoinDot(commit.AuthorName, DashboardModel.FormatDate(commit.CreatedAt, _language)))));
         content.Children.Add(meta);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         actions.Children.Add(_p.IdChip(commit.Id, L("Dashboard_CopyIdFormat"), "Dashboard_Copied"));
@@ -399,7 +477,7 @@ internal sealed partial class ProjectsView
         content.Children.Add(actions);
         Grid.SetColumn(content, 1);
         row.Children.Add(content);
-        AutomationProperties.SetName(row, $"{commit.AuthorName}: {commit.Title}");
+        AutomationProperties.SetName(row, $"{(withProject ? commit.ProjectName : commit.AuthorName)}: {commit.Title}");
         return row;
     }
 

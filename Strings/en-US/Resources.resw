@@ -167,4 +167,16 @@
   <data name="Projects_ErrorNoAccess"><value>You may no longer have access, or it was removed. Go back to the project list to see the current projects.</value></data>
   <data name="Projects_ErrorUnexpectedTitle"><value>Projects couldn&apos;t be loaded</value></data>
   <data name="Projects_CommitCountOne"><value>1 commit</value></data>
+  <data name="History_Title"><value>Your commit history</value></data>
+  <data name="History_Intro"><value>Commits you have published across your projects.</value></data>
+  <data name="History_Summary"><value>History summary</value></data>
+  <data name="History_TotalCommits"><value>Total commits</value></data>
+  <data name="History_Projects"><value>Projects</value></data>
+  <data name="History_NamedVersions"><value>Named versions</value></data>
+  <data name="History_AllProjects"><value>All projects</value></data>
+  <data name="History_ProjectFilter"><value>Project</value></data>
+  <data name="History_BackToHistory"><value>Back to your commit history</value></data>
+  <data name="History_ErrorSession"><value>Sign in again to load your commit history.</value></data>
+  <data name="History_ErrorUnexpectedTitle"><value>Commit history couldn&apos;t be loaded</value></data>
+  <data name="History_ErrorNoAccess"><value>You may no longer have access, or it was removed. Go back to your commit history to see the current commits.</value></data>
 </root>

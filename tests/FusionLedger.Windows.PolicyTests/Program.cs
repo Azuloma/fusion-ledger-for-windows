@@ -126,7 +126,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.9.2", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.10.0", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -163,10 +163,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.9.2</Version>", StringComparison.Ordinal), "Version source of truth must be v0.9.2.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.9.2.0\"", StringComparison.Ordinal), "Manifest version must be v0.9.2.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.9.2", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.9.2", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.10.0</Version>", StringComparison.Ordinal), "Version source of truth must be v0.10.0.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.10.0.0\"", StringComparison.Ordinal), "Manifest version must be v0.10.0.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.10.0", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.10.0", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -430,7 +430,7 @@ Assert(!projectsCode.Contains("startReservation", StringComparison.Ordinal) && !
     && projectsCode.Contains("Launcher.LaunchUriAsync(safe)", StringComparison.Ordinal),
     "Projects must stay read-only, show the storage note with share links and open only validated links in the browser.");
 Assert(mainCode.Contains("if (page == NativePage.Projects) return CreateProjectsPage();", StringComparison.Ordinal)
-    && mainCode.Contains("_projects?.TryGoBack() == true", StringComparison.Ordinal)
+    && mainCode.Contains("if (CurrentStackPage?.TryGoBack() == true) return;", StringComparison.Ordinal)
     && dashboardCode.Contains("_openProject(project.Id, project.Name)", StringComparison.Ordinal),
     "Projects must be the native page, Back must walk its screens and the Dashboard must open projects natively.");
 Assert(projectsCode.Contains("var titleRow = new InlineWrapPanel();", StringComparison.Ordinal)
@@ -442,4 +442,48 @@ Assert(projectsCode.Contains("var meta = new InlineWrapPanel { HorizontalSpacing
     && !projectsCode.Contains("var meta = new StackPanel", StringComparison.Ordinal),
     "Project list and commit meta lines must wrap in a narrow window instead of clipping.");
 
-Console.WriteLine("v0.9.2 native shell, dashboard, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+// ----- Commit history (read-only, author-scoped on the server) -----
+var historyPage = HistoryModel.ParseHistory(Json("""
+{"items":[{"id":"c1","projectId":"p1","projectName":"Sonic Nightmare","title":"Newest","changes":"fixes","url":"https://drive.example.com/f","version":"v2","createdAt":"2026-09-19T14:24:00.000Z","author":{"username":"azunel"}},
+          {"id":"bad id","title":"dropped"}],
+ "summary":{"total":12,"projects":3,"contributors":1,"versions":5}}
+"""), Json("""{"limit":30,"offset":0,"nextOffset":30,"total":12}"""));
+Assert(historyPage is { Commits.Count: 1, Total: 12, NextOffset: 30, Summary: { Total: 12, Projects: 3, Versions: 5 } } && historyPage.Commits[0].ProjectName == "Sonic Nightmare",
+    "History must use the server items, paging and summary counts.");
+Assert(HistoryModel.ParseHistory(Json("""{"items":[],"summary":{"total":1,"projects":1,"versions":"x"}}"""), null) is { Summary: null }
+    && HistoryModel.ParseHistory(Json("""{"items":[],"summary":{}}"""), null) is { Summary: null },
+    "A partial or malformed history summary must show no counts instead of zeros.");
+Assert(HistoryModel.ParseHistory(Json("""{"items":[]}"""), null) is { Summary: null, Total: 0, NextOffset: null }
+    && HistoryModel.ParseHistory(Json("[]"), null) is null && HistoryModel.ParseHistory(Json("""{"items":{}}"""), null) is null,
+    "History without a summary shows no counts, and unexpected shapes must not render.");
+var historyPayload = HistoryModel.HistoryPayload(new CommitFilter(" fix ", 7, true, "p1"), 30);
+Assert(historyPayload["project"]!.GetValue<string>() == "p1" && historyPayload["q"]!.GetValue<string>() == "fix" && historyPayload["days"]!.GetValue<int>() == 7
+    && historyPayload["latest"]!.GetValue<int>() == 1 && historyPayload["offset"]!.GetValue<int>() == 30 && historyPayload["limit"]!.GetValue<int>() == ProjectsModel.PageSize
+    && !HistoryModel.HistoryPayload(new CommitFilter("", 0, false, "../x"), 0).ContainsKey("project") && !HistoryModel.HistoryPayload(CommitFilter.None, 0).ContainsKey("project")
+    && !historyPayload.ContainsKey("author") && !historyPayload.ContainsKey("projectId")
+    && HistoryModel.ProjectOptionsPayload()["limit"]!.GetValue<int>() == HistoryModel.ProjectOptionLimit,
+    "History payloads must send only valid project ids and never an author (the server scopes it).");
+Assert(new CommitFilter("", 0, false, "p1").IsActive && !CommitFilter.None.IsActive
+    && HistoryModel.ProjectOptions(projectList) is { Count: 2 } historyOptions && historyOptions[0].Id == "62cbdc9e-1" && HistoryModel.ProjectOptions(null).Count == 0,
+    "The project filter lists accessible projects and counts as an active filter.");
+Assert(BridgePolicy.IsKnownCommand("history") && !BridgePolicy.IsWrite("history"), "Commit history must use only the read command history.");
+var historyCode = File.ReadAllText(Path.Combine(sourceRoot, "Pages", "History", "ProjectsView.History.cs"));
+Assert(mainCode.Contains("if (page == NativePage.CommitHistory) return CreateCommitHistoryPage();", StringComparison.Ordinal)
+    && mainCode.Contains("ProjectsRoot.History", StringComparison.Ordinal)
+    && mainCode.Contains("NativePage.CommitHistory => _commitHistory", StringComparison.Ordinal)
+    && historyCode.Contains("\"history\"", StringComparison.Ordinal) && historyCode.Contains("showProject: true", StringComparison.Ordinal)
+    && historyCode.Contains("if (page.Summary is not { } summary) return;", StringComparison.Ordinal)
+    && historyCode.Contains("onReload: () => stats.Visibility = Visibility.Collapsed", StringComparison.Ordinal)
+    && historyCode.Contains("\"\\uE72C\"", StringComparison.Ordinal) && !historyCode.Contains(", \"\", ", StringComparison.Ordinal)
+    && projectsCode.Contains("private FrameworkElement BuildCommitTimeline(", StringComparison.Ordinal)
+    && !historyCode.Contains("Write", StringComparison.Ordinal) && !historyCode.Contains("startReservation", StringComparison.Ordinal),
+    "Commit history must be the native page on the shared commit timeline, show only server counts and stay read-only.");
+var historyKeys = System.Text.RegularExpressions.Regex.Matches(historyCode + projectsCode, "\"(History_[A-Za-z0-9]+)\"").Select(m => m.Groups[1].Value).Distinct().ToList();
+Assert(historyKeys.Count >= 10, "History strings must be found in the source.");
+foreach (var locale in new[] { "en-US", "ja-JP" })
+{
+    var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
+    foreach (var key in historyKeys) Assert(resource.Contains($"<data name=\"{key}\">", StringComparison.Ordinal), $"Missing history string {key} in {locale}");
+}
+
+Console.WriteLine("v0.10.0 native shell, dashboard, commit history, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

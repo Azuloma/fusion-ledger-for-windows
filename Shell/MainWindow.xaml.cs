@@ -24,6 +24,7 @@ public sealed partial class MainWindow : Window
     private readonly WebBridgeClient _bridge = new();
     private DashboardView? _dashboard;
     private ProjectsView? _projects;
+    private ProjectsView? _commitHistory;
     private string _bridgeStatusKey = "BridgeConnecting";
     private TextBlock? _bridgeStatusText;
     private bool _signingOut;
@@ -260,17 +261,25 @@ public sealed partial class MainWindow : Window
         SyncNavigationSelection(page);
     }
 
-    /// <summary>Back is shown for nested pages and for a project or commit opened inside Projects.</summary>
+    /// <summary>The page's own screen stack (Projects or Commit history), which Back walks first.</summary>
+    private ProjectsView? CurrentStackPage => _currentPage switch
+    {
+        NativePage.Projects => _projects,
+        NativePage.CommitHistory => _commitHistory,
+        _ => null
+    };
+
+    /// <summary>Back is shown for nested pages and for a project or commit opened inside Projects or Commit history.</summary>
     private void UpdateBackButton()
     {
-        var projectsNested = _currentPage == NativePage.Projects && _projects?.CanGoBack == true;
-        AppTitleBar.IsBackButtonVisible = NativePageCatalog.IsNested(_currentPage) || projectsNested;
-        AppTitleBar.IsBackButtonEnabled = _history.Count > 0 || projectsNested;
+        var stackNested = CurrentStackPage?.CanGoBack == true;
+        AppTitleBar.IsBackButtonVisible = NativePageCatalog.IsNested(_currentPage) || stackNested;
+        AppTitleBar.IsBackButtonEnabled = _history.Count > 0 || stackNested;
     }
 
     private void GoBack()
     {
-        if (_currentPage == NativePage.Projects && _projects?.TryGoBack() == true) return;
+        if (CurrentStackPage?.TryGoBack() == true) return;
         if (_history.Count == 0) return;
         var page = _history.Pop();
         NavigateTo(page, false);
@@ -280,6 +289,7 @@ public sealed partial class MainWindow : Window
     {
         if (page == NativePage.Dashboard) return CreateDashboardPage();
         if (page == NativePage.Projects) return CreateProjectsPage();
+        if (page == NativePage.CommitHistory) return CreateCommitHistoryPage();
         if (page == NativePage.AppSettings) return CreateSettingsPage();
         if (page == NativePage.VersionInfo) return CreateVersionInfoPage();
 
@@ -308,6 +318,17 @@ public sealed partial class MainWindow : Window
             UpdateBackButton);
         _ = _projects.EnsureLoadedAsync();
         return _projects;
+    }
+
+    private FrameworkElement CreateCommitHistoryPage()
+    {
+        _commitHistory ??= new ProjectsView(L, _user, ReadLanguage(),
+            (command, payload) => _bridge.RequestAsync(command, payload),
+            () => _ = SignOutAsync(),
+            UpdateBackButton,
+            ProjectsRoot.History);
+        _ = _commitHistory.EnsureLoadedAsync();
+        return _commitHistory;
     }
 
     /// <summary>Opens a project overview from another page (the list stays underneath for Back).</summary>

@@ -167,4 +167,16 @@
   <data name="Projects_ErrorNoAccess"><value>アクセス権がなくなったか、削除された可能性があります。プロジェクト一覧に戻って最新の状態を確認してください。</value></data>
   <data name="Projects_ErrorUnexpectedTitle"><value>プロジェクトを読み込めませんでした</value></data>
   <data name="Projects_CommitCountOne"><value>1 コミット</value></data>
+  <data name="History_Title"><value>自分のコミット履歴</value></data>
+  <data name="History_Intro"><value>参加プロジェクトへ自分が投稿したコミットです。</value></data>
+  <data name="History_Summary"><value>履歴の集計</value></data>
+  <data name="History_TotalCommits"><value>コミット数</value></data>
+  <data name="History_Projects"><value>プロジェクト</value></data>
+  <data name="History_NamedVersions"><value>名前付きバージョン</value></data>
+  <data name="History_AllProjects"><value>全プロジェクト</value></data>
+  <data name="History_ProjectFilter"><value>プロジェクト</value></data>
+  <data name="History_BackToHistory"><value>自分のコミット履歴に戻る</value></data>
+  <data name="History_ErrorSession"><value>コミット履歴を読み込むには、再度サインインしてください。</value></data>
+  <data name="History_ErrorUnexpectedTitle"><value>コミット履歴を読み込めませんでした</value></data>
+  <data name="History_ErrorNoAccess"><value>アクセス権がなくなったか、削除された可能性があります。自分のコミット履歴に戻って最新の状態を確認してください。</value></data>
 </root>

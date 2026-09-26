@@ -17,5 +17,6 @@
     <Compile Include="..\..\Bridge\BridgePolicy.cs" Link="BridgePolicy.cs" />
     <Compile Include="..\..\Pages\Dashboard\DashboardModel.cs" Link="DashboardModel.cs" />
     <Compile Include="..\..\Pages\Projects\ProjectsModel.cs" Link="ProjectsModel.cs" />
+    <Compile Include="..\..\Pages\History\HistoryModel.cs" Link="HistoryModel.cs" />
   </ItemGroup>
 </Project>

@@ -337,12 +337,8 @@ internal sealed class DashboardView : UserControl
         byline.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         var picture = new PersonPicture { Width = 28, Height = 28, DisplayName = commit.AuthorName, VerticalAlignment = VerticalAlignment.Top };
         AutomationProperties.SetAccessibilityView(picture, AccessibilityView.Raw);
-        if (commit.AuthorAvatar is { } avatar)
-        {
-            _ = SetAvatarAsync(picture, avatar);
-            // A theme change drops the decoded picture (the initials fallback reappears), so decode it again.
-            picture.ActualThemeChanged += (_, _) => _ = SetAvatarAsync(picture, avatar);
-        }
+        if (commit.AuthorAvatar is { } avatar) AvatarImage.Attach(picture, avatar, 56);
+
         byline.Children.Add(picture);
 
         var who = new Grid { ColumnSpacing = 4 };
@@ -459,21 +455,4 @@ internal sealed class DashboardView : UserControl
     private static Border Divider() => new() { Style = Res("DashboardDividerStyle") };
 
     private static Microsoft.UI.Xaml.Style Res(string key) => (Microsoft.UI.Xaml.Style)Application.Current.Resources[key];
-
-    private static async Task SetAvatarAsync(PersonPicture picture, byte[] png)
-    {
-        try
-        {
-            using var stream = new InMemoryRandomAccessStream();
-            await stream.WriteAsync(png.AsBuffer());
-            stream.Seek(0);
-            var image = new BitmapImage { DecodePixelWidth = 56 };
-            await image.SetSourceAsync(stream);
-            picture.ProfilePicture = image;
-        }
-        catch
-        {
-            // The initials fallback stays in place.
-        }
-    }
 }

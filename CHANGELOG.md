@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.8.3
+
+- Avatars (Dashboard commits, title bar and account flyout) are decoded again whenever the picture is loaded or its theme changes, via `AvatarImage`. The v0.8.1 fix only listened for theme changes and did not cover a Dashboard that was off screen during the switch, so initials still appeared.
+
+## v0.8.2
+
+- Pages now fill the content area when the window grows or is maximized. `ContentFrame` stretches its content horizontally and vertically instead of the ContentControl default (left/top), which kept the Dashboard at its earlier desired width. Dashboard content wider than 1280 DIP stays centered.
+
 ## v0.8.1
 
 - Dashboard commit avatars are decoded again after a Light/Dark theme change; previously they fell back to initials once the theme changed.

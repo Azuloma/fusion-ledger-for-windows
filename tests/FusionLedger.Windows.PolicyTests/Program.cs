@@ -62,7 +62,7 @@ Assert(mainXaml.Contains("OpenPaneLength=\"240\"", StringComparison.Ordinal), "E
 var titleBarMarkup = mainXaml[..mainXaml.IndexOf("</controls:TitleBar>", StringComparison.Ordinal)];
 Assert(!mainXaml.Contains("PaneToggleRequested", StringComparison.Ordinal)
     && !titleBarMarkup.Contains("IsPaneToggleButtonVisible", StringComparison.Ordinal), "TitleBar must not host a duplicate pane toggle.");
-Assert(mainXaml.Contains("<ContentControl x:Name=\"ContentFrame\"", StringComparison.Ordinal)
+Assert(mainXaml.Contains("<ContentControl x:Name=\"ContentFrame\" HorizontalContentAlignment=\"Stretch\" VerticalContentAlignment=\"Stretch\">", StringComparison.Ordinal)
     && mainXaml.Contains("<EntranceThemeTransition FromHorizontalOffset=\"40\"", StringComparison.Ordinal)
     && mainCode.Contains("ContentFrame.Content = CreatePlaceholder(page)", StringComparison.Ordinal)
     && !mainCode.Contains("ContentFrame.Navigate", StringComparison.Ordinal), "Section content must animate with the native theme transition without Frame navigation.");
@@ -126,7 +126,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.8.1", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.8.3", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -163,10 +163,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.8.1</Version>", StringComparison.Ordinal), "Version source of truth must be v0.8.1.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.8.1.0\"", StringComparison.Ordinal), "Manifest version must be v0.8.1.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.8.1", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.8.1", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.8.3</Version>", StringComparison.Ordinal), "Version source of truth must be v0.8.3.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.8.3.0\"", StringComparison.Ordinal), "Manifest version must be v0.8.3.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.8.3", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.8.3", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -332,6 +332,10 @@ Assert(mainCode.Contains("_bridge.RequestAsync(\"dashboard\")", StringComparison
     && dashboardCode.Contains("Dashboard_StorageNote", StringComparison.Ordinal)
     && !dashboardCode.Contains("Create project", StringComparison.OrdinalIgnoreCase) && !dashboardCode.Contains("publish:", StringComparison.Ordinal),
     "Dashboard must load through the bridge, keep the storage privacy note and render no actions without a native implementation.");
-Assert(dashboardCode.Contains("picture.ActualThemeChanged += (_, _) => _ = SetAvatarAsync(picture, avatar);", StringComparison.Ordinal), "Commit avatars must be decoded again after a theme change.");
+var avatarCode = File.ReadAllText(Path.Combine(sourceRoot, "AvatarImage.cs"));
+Assert(avatarCode.Contains("picture.Loaded +=", StringComparison.Ordinal) && avatarCode.Contains("picture.ActualThemeChanged +=", StringComparison.Ordinal)
+    && dashboardCode.Contains("AvatarImage.Attach(picture, avatar, 56)", StringComparison.Ordinal)
+    && mainCode.Contains("AvatarImage.Attach(ProfilePicture, avatar, 64)", StringComparison.Ordinal) && mainCode.Contains("AvatarImage.Attach(AccountPicture, avatar, 96)", StringComparison.Ordinal),
+    "Avatars must be decoded again whenever a picture is loaded or its theme changes, so a theme switch never leaves only initials.");
 
-Console.WriteLine("v0.8.1 native shell, dashboard, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+Console.WriteLine("v0.8.3 native shell, dashboard, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

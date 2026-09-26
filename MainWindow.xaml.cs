@@ -197,25 +197,9 @@ public sealed partial class MainWindow : Window
         AccountPicture.DisplayName = _user.Username;
         if (_user.AvatarPng is { Length: > 0 } avatar)
         {
-            _ = ApplyAvatarAsync(avatar);
-        }
-    }
-
-    private async Task ApplyAvatarAsync(byte[] avatar)
-    {
-        try
-        {
-            using var stream = new InMemoryRandomAccessStream();
-            await stream.WriteAsync(avatar.AsBuffer());
-            stream.Seek(0);
-            var image = new BitmapImage();
-            await image.SetSourceAsync(stream);
-            ProfilePicture.ProfilePicture = image;
-            AccountPicture.ProfilePicture = image;
-        }
-        catch
-        {
-            // PersonPicture keeps the username initial fallback.
+            // The account flyout picture is out of the tree while closed, so both pictures re-decode on load.
+            AvatarImage.Attach(ProfilePicture, avatar, 64);
+            AvatarImage.Attach(AccountPicture, avatar, 96);
         }
     }
 

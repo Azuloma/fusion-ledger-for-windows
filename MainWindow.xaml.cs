@@ -21,6 +21,10 @@ public sealed partial class MainWindow : Window
     private readonly ObservableCollection<string> _searchSuggestions = [];
     private readonly Stack<NativePage> _history = new();
     private readonly ThemeService _themeService = new();
+    private readonly WebBridgeClient _bridge = new();
+    private string _bridgeStatusKey = "BridgeConnecting";
+    private TextBlock? _bridgeStatusText;
+    private bool _signingOut;
     private NativePage _currentPage = NativePage.Dashboard;
     private RadioButtons? _languageOptions;
     private RadioButtons? _themeOptions;
@@ -93,7 +97,42 @@ public sealed partial class MainWindow : Window
         _themeService.Apply(RootGrid, ReadTheme());
     }
 
-    private void MainWindow_Closed(object sender, WindowEventArgs args) => _themeService.Dispose();
+    private void MainWindow_Closed(object sender, WindowEventArgs args)
+    {
+        _themeService.Dispose();
+        _bridge.Dispose();
+    }
+
+    /// <summary>Connects the hidden data bridge and confirms the server session behind it.</summary>
+    private async Task ConnectBridgeAsync()
+    {
+        if (!await _bridge.StartAsync())
+        {
+            SetBridgeStatus("BridgeUnavailable", _bridge.LastError);
+            return;
+        }
+
+        var session = await _bridge.RequestAsync("session");
+        if (!session.Ok || session.Data is not { } data)
+        {
+            SetBridgeStatus("BridgeUnavailable", $"session {session.Status} {session.ErrorCode}");
+            return;
+        }
+        var signedIn = data.TryGetProperty("user", out var user) && user.ValueKind == System.Text.Json.JsonValueKind.Object;
+        SetBridgeStatus(signedIn ? "BridgeConnected" : "BridgeSessionEnded");
+    }
+
+    private string? _bridgeStatusDetail;
+
+    private void SetBridgeStatus(string key, string? detail = null)
+    {
+        _bridgeStatusKey = key;
+        _bridgeStatusDetail = detail;
+        if (_bridgeStatusText is not null) _bridgeStatusText.Text = BridgeStatusText();
+    }
+
+    private string BridgeStatusText() =>
+        string.IsNullOrEmpty(_bridgeStatusDetail) ? L(_bridgeStatusKey) : $"{L(_bridgeStatusKey)} ({_bridgeStatusDetail})";
 
     private void ApplyLocalizedStrings()
     {
@@ -133,6 +172,7 @@ public sealed partial class MainWindow : Window
         // Let NavigationView finish its initial selection/layout before showing the first page.
         _initialNavigationCompleted = true;
         NavigateTo(NativePage.Dashboard, false);
+        _ = ConnectBridgeAsync();
     }
 
     private void RootGrid_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -304,16 +344,19 @@ public sealed partial class MainWindow : Window
         AddVersionRow(panel, "WebViewLabel", info.WebViewDescription);
         AddVersionRow(panel, "ArchitectureLabel", info.Architecture);
         AddVersionRow(panel, "PackageIdentityLabel", info.PackageIdentity);
+        _bridgeStatusText = AddVersionRow(panel, "BridgeLabel", BridgeStatusText());
         scroll.Content = panel;
         return scroll;
     }
 
-    private void AddVersionRow(StackPanel panel, string labelKey, string value)
+    private TextBlock AddVersionRow(StackPanel panel, string labelKey, string value)
     {
         var row = new StackPanel { Spacing = 2 };
+        var valueText = new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap };
         row.Children.Add(new TextBlock { Text = L(labelKey), Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"] });
-        row.Children.Add(new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap });
+        row.Children.Add(valueText);
         panel.Children.Add(row);
+        return valueText;
     }
 
     private static RadioButton? FindRadioButton(RadioButtons buttons, string tag) =>
@@ -498,7 +541,16 @@ public sealed partial class MainWindow : Window
     }
     private void ProfileSettings_Click(object sender, RoutedEventArgs e) { AccountFlyout.Hide(); NavigateTo(NativePage.ProfileSettings); }
     private void Administration_Click(object sender, RoutedEventArgs e) { AccountFlyout.Hide(); if (NativePageCatalog.CanOpenMaintenance(_user)) NavigateTo(NativePage.Administration); }
-    private void SignOut_Click(object sender, RoutedEventArgs e) { AccountFlyout.Hide(); App.RequestSignOut(); }
+    private async void SignOut_Click(object sender, RoutedEventArgs e)
+    {
+        AccountFlyout.Hide();
+        if (_signingOut) return;
+        _signingOut = true;
+        // Revoke the server session first when the bridge is up; local sign-in data is cleared either way.
+        if (_bridge.State == BridgeConnectionState.Connected) await _bridge.RequestAsync("logout");
+        App.RequestSignOut();
+        _signingOut = false;
+    }
 
     private string LocalizedValue(string prefix, string value)
     {

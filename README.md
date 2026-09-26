@@ -1,6 +1,6 @@
 # MolHub for Windows
 
-A native-first Windows client for MolHub (formerly Fusion Ledger), built with WinUI 3. Current version: **v0.6.4** (beta prototype).
+A native-first Windows client for MolHub (formerly Fusion Ledger), built with WinUI 3. Current version: **v0.7.1** (beta prototype).
 
 The app opens a sign-in window that hosts the existing MolHub web login in WebView2. Once the production `/api/me` response confirms the signed-in user, the sign-in window closes and a native main window opens. The main window is a WinUI shell, not a wrapper around the web application.
 
@@ -11,7 +11,8 @@ The app opens a sign-in window that hosts the existing MolHub web login in WebVi
 | Sign-in (WebView2) | Working. A saved session signs in automatically on the next launch. |
 | Native shell | Title bar, page search, navigation pane, account and notification flyouts. |
 | App settings | Working. Language (English / Japanese) and theme (System / Light / Dark). |
-| Version info | Working. Reports the app, Windows App SDK, WebView2 runtime and package details. |
+| Version info | Working. Reports the app, Windows App SDK, WebView2 runtime, package details and the web data connection state. |
+| Web data bridge | Connected. A hidden bridge confirms the server session after sign-in and revokes it on sign out. Data pages do not use it yet. |
 | Dashboard, Projects, Commit history | Placeholders. They are not connected to data yet. |
 | Server maintenance, Administration, Profile settings | Placeholders. Maintenance and administration appear only for approved admins. |
 | Notifications | Not connected. The flyout says so; no notifications are generated. |
@@ -43,8 +44,8 @@ dotnet build FusionLedger.Windows.csproj -p:Platform=x64 -p:Configuration=Debug
 Use Windows PowerShell 5.1 or later. First enable **Settings > System > For developers > Developer Mode**. Then check and install the package you built:
 
 ```powershell
-.\Install-Prototype.ps1 -WhatIf -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.6.4.0_x64_Debug_Test"
-.\Install-Prototype.ps1 -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.6.4.0_x64_Debug_Test"
+.\Install-Prototype.ps1 -WhatIf -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.7.1.0_x64_Debug_Test"
+.\Install-Prototype.ps1 -PackageDirectory ".\AppPackages\FusionLedger.Windows_0.7.1.0_x64_Debug_Test"
 ```
 
 - `-WhatIf` only checks that the package and its x64 dependency packages are present; nothing is installed.
@@ -58,7 +59,8 @@ This package is unsigned and meant for development only. Windows SmartScreen may
 
 - **Packaging:** packaged WinUI 3 desktop app for x64, using Microsoft.WindowsAppSDK 2.5.1 and Microsoft.Web.WebView2.
 - **Sign-in window:** a compact, fixed-size dialog with a 481 × 683 DIP client area (32 DIP title bar with only a close button). It scales with the monitor's DPI, stays inside the work area and opens centered; a progress ring covers the web view until the first page load.
-- **Windows:** `LoginWindow` is the only window that creates WebView2. `MainWindow` is fully native and changes pages by replacing the content of `ContentFrame`.
+- **Windows:** `LoginWindow` hosts the only visible WebView2. `MainWindow` is fully native (no WebView2 in its XAML) and changes pages by replacing the content of `ContentFrame`.
+- **Data bridge:** `WebBridgeClient` runs a hidden WebView2 controller in its own invisible window. It loads only `https://fusion-ledger.desase0175.workers.dev/webview-bridge` (the canonical path of the web app's bridge page) and exchanges `{ command, requestId, payload }` messages with it; the page calls `/api/v1` with the session cookie. Both WebViews share one environment (`WebViewProfile`), so the engine shares the HttpOnly cookie without the app reading it. Writes that time out or lose the bridge are reported as "outcome unknown" and never resent automatically.
 - **Sign-in data:** the WebView2 profile is stored at `ApplicationData.Current.LocalFolder\FusionLedger.WebView2`. For an installed package this is normally `%LOCALAPPDATA%\Packages\FusionLedger.Windows_*\LocalState\FusionLedger.WebView2`.
 - **User details:** the app reads only an exact HTTPS `GET /api/me` response. It accepts bounded JSON with a username, a known status (`pending`, `approved`, `rejected`, `suspended`) and role (`member`, `admin`), plus an optional small PNG avatar.
 - **Settings:** only the `ui.language` and `ui.theme` keys are stored in `LocalSettings`. Invalid values fall back to English and System. Theme changes apply at once; a language change applies after restarting the app.
@@ -68,14 +70,14 @@ This package is unsigned and meant for development only. Windows SmartScreen may
 ## Security boundary
 
 - The sign-in view allows only `https://fusion-ledger.desase0175.workers.dev` inside the app. Other HTTP(S) and `mailto:` links open in the default Windows app.
-- Pop-ups are controlled and permission requests are denied. DevTools, host objects and WebMessage are disabled. Certificate errors are never bypassed.
-- The app injects no scripts, CSS or message bridge. It never reads or logs cookies, request headers or other secrets.
+- Pop-ups are controlled and permission requests are denied. DevTools and host objects are disabled in both WebViews. WebMessage is disabled in the sign-in WebView and enabled only in the hidden bridge, which accepts messages only from the exact bridge document and sends only a fixed list of commands. Certificate errors are never bypassed.
+- The app injects no scripts or CSS into any page. It never reads or logs cookies, request headers or other secrets; bridge results are passed through the page's own filtering of sensitive keys.
 
 ## Known limitations
 
-- Sign out clears the WebView2 cookies and site data before showing the sign-in page, but it does not end the session on the server. No logout API is called yet.
+- Sign out revokes the server session through the bridge when it is connected, then clears the WebView2 cookies and site data. If the bridge is unavailable, only the local data is cleared and the server session expires on its own.
 - The data pages are not connected, and there are no notifications, tray icon or background activity.
 
 ## Versioning
 
-The `<Version>` element in `FusionLedger.Windows.csproj` defines the app version. `Package.appxmanifest` uses the matching four-part package version (for example `0.6.4.0`). See [VERSION.md](VERSION.md) for the policy and [CHANGELOG.md](CHANGELOG.md) for release notes.
+The `<Version>` element in `FusionLedger.Windows.csproj` defines the app version. `Package.appxmanifest` uses the matching four-part package version (for example `0.7.1.0`). See [VERSION.md](VERSION.md) for the policy and [CHANGELOG.md](CHANGELOG.md) for release notes.

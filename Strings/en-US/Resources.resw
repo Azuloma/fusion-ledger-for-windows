@@ -53,6 +53,11 @@
   <data name="SettingsSaveErrorTitle"><value>Could not save setting</value></data>
   <data name="SettingsSaveErrorMessage"><value>The setting could not be saved. Check local storage and try again.</value></data>
   <data name="VersionInfoDescription"><value>Runtime information for this MolHub for Windows build.</value></data>
+  <data name="BridgeLabel"><value>Web data connection</value></data>
+  <data name="BridgeConnecting"><value>Connecting…</value></data>
+  <data name="BridgeConnected"><value>Connected (server session active)</value></data>
+  <data name="BridgeSessionEnded"><value>The server session has ended. Sign in again to load data.</value></data>
+  <data name="BridgeUnavailable"><value>Unavailable</value></data>
   <data name="VersionLabel"><value>Version</value></data>
   <data name="BetaLabel"><value>Release channel</value></data>
   <data name="FrameworkLabel"><value>UI framework</value></data>

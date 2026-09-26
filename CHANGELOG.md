@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.1
+
+- The data bridge retries hidden controller creation (up to three attempts with backoff), because the sign-in WebView may still be shutting down the shared browser process right after sign-in.
+- Version info shows a diagnostic next to an unavailable bridge: the failing stage with an HRESULT, WebView2 error status or session HTTP status. It never contains page data.
+
+## v0.7.0
+
+- Added the MolHub web data bridge host (`WebBridgeClient`). A hidden WebView2 controller in its own invisible window loads only `https://<origin>/webview-bridge` (the canonical path; `/webview-bridge.html` redirects there), enables WebMessage only there, accepts messages only from that exact document, sends only allow-listed commands and correlates results by `requestId`. Host timeouts (20 s reads, 40 s writes) back up the page's own 15 s / 30 s aborts; writes that time out or lose the bridge are reported with outcome Unknown and are never resent.
+- The sign-in window and the bridge share one WebView2 environment (`WebViewProfile`), so the browser engine shares the HttpOnly session cookie; the host never reads it. The sign-in WebView keeps WebMessage disabled.
+- Sign out now calls the bridge `logout` operation to revoke the server session before clearing local WebView2 data (local clearing still happens if the bridge is unavailable).
+- Version info shows the web data connection state (connecting, connected, server session ended, unavailable). Data pages remain placeholders.
+
 ## v0.6.4
 
 - Title-bar flyouts now use thin desktop acrylic so the screen behind visibly shows through. The windowed flyout popup never becomes the active window, so its backdrop is configured as active (following the app theme and High Contrast) instead of drawing the inactive solid fallback.

@@ -126,7 +126,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.6.4", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.7.1", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -163,10 +163,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.6.4</Version>", StringComparison.Ordinal), "Version source of truth must be v0.6.4.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.6.4.0\"", StringComparison.Ordinal), "Manifest version must be v0.6.4.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.6.4", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.6.4", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.7.1</Version>", StringComparison.Ordinal), "Version source of truth must be v0.7.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.7.1.0\"", StringComparison.Ordinal), "Manifest version must be v0.7.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.7.1", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.7.1", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -231,4 +231,57 @@ Assert(mainCode.Contains("ShowHeaderFlyout(NotificationsFlyout, NotificationsBut
     && mainCode.Contains("ShowHeaderFlyout(AccountFlyout, ProfileButton)", StringComparison.Ordinal)
     && mainCode.Contains("DisplayAreaFallback.Nearest).WorkArea", StringComparison.Ordinal), "Title-bar flyouts must choose their placement from the monitor work area.");
 
-Console.WriteLine("v0.6.4 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+// Web data bridge: exact document, trusted source, fixed commands, bounded request/result shapes.
+Assert(BridgePolicy.BridgeUri.AbsoluteUri == "https://fusion-ledger.desase0175.workers.dev/webview-bridge", "Bridge must load the canonical extensionless document on the production origin.");
+Assert(BridgePolicy.IsBridgeDocument(BridgePolicy.BridgeUri)
+    && !BridgePolicy.IsBridgeDocument(new Uri("https://fusion-ledger.desase0175.workers.dev/webview-bridge.html"))
+    && !BridgePolicy.IsBridgeDocument(new Uri("https://fusion-ledger.desase0175.workers.dev/webview-bridge?x=1"))
+    && !BridgePolicy.IsBridgeDocument(new Uri("https://fusion-ledger.desase0175.workers.dev/webview-bridge#x"))
+    && !BridgePolicy.IsBridgeDocument(new Uri("http://fusion-ledger.desase0175.workers.dev/webview-bridge"))
+    && !BridgePolicy.IsBridgeDocument(new Uri("https://example.com/webview-bridge"))
+    && !BridgePolicy.IsBridgeDocument(new Uri("https://fusion-ledger.desase0175.workers.dev/")), "Only the exact bridge document may load.");
+Assert(BridgePolicy.IsTrustedSource("https://fusion-ledger.desase0175.workers.dev/webview-bridge")
+    && !BridgePolicy.IsTrustedSource("https://fusion-ledger.desase0175.workers.dev/")
+    && !BridgePolicy.IsTrustedSource(null) && !BridgePolicy.IsTrustedSource("not a url"), "Only the bridge document may answer.");
+Assert(BridgePolicy.IsKnownCommand("session") && BridgePolicy.IsKnownCommand("publishCommit") && !BridgePolicy.IsKnownCommand("deleteMember")
+    && !BridgePolicy.IsKnownCommand("fetch") && !BridgePolicy.IsKnownCommand(null)
+    && BridgePolicy.IsWrite("logout") && BridgePolicy.IsWrite("publishCommit") && !BridgePolicy.IsWrite("dashboard"), "Bridge commands must come from the fixed read/write allowlist.");
+var bridgeId = BridgePolicy.NewRequestId();
+Assert(BridgePolicy.IsValidRequestId(bridgeId) && !BridgePolicy.IsValidRequestId("bad id") && !BridgePolicy.IsValidRequestId(new string('a', 81)), "Request ids must match the bridge pattern.");
+var built = System.Text.Json.JsonDocument.Parse(BridgePolicy.BuildRequest("project", "r1", new System.Text.Json.Nodes.JsonObject { ["projectId"] = "p1", ["requestId"] = "evil" })!).RootElement;
+Assert(built.GetProperty("command").GetString() == "project" && built.GetProperty("requestId").GetString() == "r1"
+    && built.GetProperty("payload").GetProperty("projectId").GetString() == "p1" && !built.GetProperty("payload").TryGetProperty("requestId", out _), "Bridge requests must carry command, requestId and a payload without a spoofed requestId.");
+Assert(BridgePolicy.BuildRequest("fetch", "r1", null) is null && BridgePolicy.BuildRequest("session", "bad id", null) is null
+    && BridgePolicy.BuildRequest("publishCommit", "r1", new System.Text.Json.Nodes.JsonObject { ["changes"] = new string('x', 50_001) }) is null, "Unknown commands, invalid ids and oversized payloads must never be sent.");
+var readResult = BridgePolicy.ParseResult("{\"requestId\":\"r1\",\"status\":200,\"ok\":true,\"data\":{\"user\":null},\"meta\":{\"nextOffset\":null},\"retryable\":false}");
+Assert(readResult is { Ok: true, Status: 200, Outcome: BridgeOutcome.None, ErrorCode: null } && readResult.Data?.GetProperty("user").ValueKind == System.Text.Json.JsonValueKind.Null && readResult.Meta is not null, "Read results must keep data and pagination meta.");
+var timeoutResult = BridgePolicy.ParseResult("{\"requestId\":\"r2\",\"status\":0,\"ok\":false,\"error\":{\"code\":\"TIMEOUT\"},\"retryable\":false,\"outcome\":\"unknown\"}");
+Assert(timeoutResult is { Status: 0, Ok: false, ErrorCode: "TIMEOUT", Outcome: BridgeOutcome.Unknown }, "Write timeouts must stay outcome Unknown.");
+var conflictResult = BridgePolicy.ParseResult("{\"requestId\":\"r3\",\"status\":409,\"ok\":false,\"error\":{\"code\":\"STALE_VERSION\",\"details\":{\"head\":\"c9\"}},\"outcome\":\"rejected\"}");
+Assert(conflictResult is { ErrorCode: "STALE_VERSION", Outcome: BridgeOutcome.Rejected } && conflictResult.ErrorDetails?.GetProperty("head").GetString() == "c9", "Conflict codes and details must reach the host.");
+Assert(BridgePolicy.ParseResult("{\"requestId\":\"r4\",\"status\":500,\"ok\":false,\"outcome\":\"surprise\"}") is { ErrorCode: "SERVER_ERROR", Outcome: BridgeOutcome.Unknown }, "Unrecognised outcomes must be treated as Unknown.");
+Assert(BridgePolicy.ParseResult("{\"requestId\":null,\"status\":400,\"ok\":false}") is null && BridgePolicy.ParseResult("[]") is null
+    && BridgePolicy.ParseResult("not json") is null && BridgePolicy.ParseResult(new string(' ', BridgePolicy.MaxResultChars + 1)) is null, "Malformed, uncorrelated or oversized results must be dropped.");
+Assert(BridgeResult.HostFailure("r5", "BRIDGE_UNAVAILABLE", false, BridgeOutcome.Rejected) is { Status: 0, Ok: false, Outcome: BridgeOutcome.Rejected }, "Host failures must report status 0 and an explicit outcome.");
+var bridgeCode = File.ReadAllText(Path.Combine(sourceRoot, "WebBridgeClient.cs"));
+Assert(bridgeCode.Contains("settings.IsWebMessageEnabled = true", StringComparison.Ordinal)
+    && bridgeCode.Contains("settings.AreDevToolsEnabled = false", StringComparison.Ordinal)
+    && bridgeCode.Contains("settings.AreHostObjectsAllowed = false", StringComparison.Ordinal)
+    && bridgeCode.Contains("_controller.IsVisible = false", StringComparison.Ordinal)
+    && bridgeCode.Contains("if (!BridgePolicy.IsTrustedSource(e.Source)) return;", StringComparison.Ordinal)
+    && bridgeCode.Contains("if (BridgePolicy.IsBridgeDocument(TryParseUri(e.Uri))) return;", StringComparison.Ordinal)
+    && bridgeCode.Contains("Core_FrameNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e) => e.Cancel = true", StringComparison.Ordinal)
+    && bridgeCode.Contains("CoreWebView2PermissionState.Deny", StringComparison.Ordinal)
+    && bridgeCode.Contains("e.Handled = true", StringComparison.Ordinal), "The hidden bridge must enable WebMessage only for the verified bridge document and deny everything else.");
+Assert(!bridgeCode.Contains("ExecuteScriptAsync", StringComparison.Ordinal) && !bridgeCode.Contains("AddScriptToExecuteOnDocumentCreated", StringComparison.Ordinal)
+    && !bridgeCode.Contains("AddHostObjectToScript", StringComparison.Ordinal) && !bridgeCode.Contains("CookieManager", StringComparison.Ordinal)
+    && !bridgeCode.Contains("GetCookies", StringComparison.Ordinal), "The bridge host must not inject script, expose host objects or touch cookies.");
+Assert(loginCode.Contains("IsWebMessageEnabled = false", StringComparison.Ordinal)
+    && loginCode.Contains("WebViewProfile.GetEnvironmentAsync()", StringComparison.Ordinal)
+    && bridgeCode.Contains("WebViewProfile.GetEnvironmentAsync()", StringComparison.Ordinal), "Sign-in keeps WebMessage disabled and shares the single WebView2 environment with the bridge.");
+var signOutHandler = mainCode[mainCode.IndexOf("private async void SignOut_Click", StringComparison.Ordinal)..];
+Assert(signOutHandler.IndexOf("RequestAsync(\"logout\")", StringComparison.Ordinal) >= 0
+    && signOutHandler.IndexOf("RequestAsync(\"logout\")", StringComparison.Ordinal) < signOutHandler.IndexOf("App.RequestSignOut()", StringComparison.Ordinal)
+    && mainCode.Contains("_bridge.Dispose()", StringComparison.Ordinal), "Sign-out must revoke the server session through the bridge before clearing local data, and the bridge must close with MainWindow.");
+
+Console.WriteLine("v0.7.1 native shell, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

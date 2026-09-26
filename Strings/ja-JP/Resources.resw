@@ -53,6 +53,11 @@
   <data name="SettingsSaveErrorTitle"><value>設定を保存できません</value></data>
   <data name="SettingsSaveErrorMessage"><value>設定を保存できませんでした。ローカルストレージを確認して再試行してください。</value></data>
   <data name="VersionInfoDescription"><value>このMolHub for Windowsビルドの実行時情報です。</value></data>
+  <data name="BridgeLabel"><value>Web データ接続</value></data>
+  <data name="BridgeConnecting"><value>接続中…</value></data>
+  <data name="BridgeConnected"><value>接続済み（サーバーのセッションは有効）</value></data>
+  <data name="BridgeSessionEnded"><value>サーバーのセッションが終了しています。データを読み込むには再度サインインしてください。</value></data>
+  <data name="BridgeUnavailable"><value>利用できません</value></data>
   <data name="VersionLabel"><value>バージョン</value></data>
   <data name="BetaLabel"><value>リリースチャネル</value></data>
   <data name="FrameworkLabel"><value>UIフレームワーク</value></data>

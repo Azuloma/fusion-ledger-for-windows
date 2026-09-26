@@ -14,5 +14,6 @@
     <Compile Include="..\..\AppIconAssets.cs" Link="AppIconAssets.cs" />
     <Compile Include="..\..\LoginWindowLayoutPolicy.cs" Link="LoginWindowLayoutPolicy.cs" />
     <Compile Include="..\..\FlyoutPlacementPolicy.cs" Link="FlyoutPlacementPolicy.cs" />
+    <Compile Include="..\..\BridgePolicy.cs" Link="BridgePolicy.cs" />
   </ItemGroup>
 </Project>

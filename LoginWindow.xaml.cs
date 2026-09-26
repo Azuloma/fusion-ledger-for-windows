@@ -5,7 +5,6 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.Web.WebView2.Core;
 using Windows.ApplicationModel.Resources;
 using Windows.Graphics;
-using Windows.Storage;
 using Windows.System;
 using WinRT.Interop;
 
@@ -127,12 +126,7 @@ public sealed partial class LoginWindow : Window
         if (_initialized || _closed) return;
         try
         {
-            var profilePath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "FusionLedger.WebView2");
-            Directory.CreateDirectory(profilePath);
-            var environment = await CoreWebView2Environment.CreateWithOptionsAsync(
-                browserExecutableFolder: null,
-                userDataFolder: profilePath,
-                options: new CoreWebView2EnvironmentOptions());
+            var environment = await WebViewProfile.GetEnvironmentAsync();
             await LoginWebView.EnsureCoreWebView2Async(environment);
             _core = LoginWebView.CoreWebView2;
             _core.Settings.AreDevToolsEnabled = false;

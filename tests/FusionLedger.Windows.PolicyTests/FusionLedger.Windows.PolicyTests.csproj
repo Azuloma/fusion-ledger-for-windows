@@ -6,16 +6,16 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\NavigationPolicy.cs" Link="NavigationPolicy.cs" />
-    <Compile Include="..\..\ProfilePayloadParser.cs" Link="ProfilePayloadParser.cs" />
-    <Compile Include="..\..\ProfileResponseCoordinator.cs" Link="ProfileResponseCoordinator.cs" />
-    <Compile Include="..\..\TitleBarLayoutPolicy.cs" Link="TitleBarLayoutPolicy.cs" />
-    <Compile Include="..\..\SettingsPolicy.cs" Link="SettingsPolicy.cs" />
-    <Compile Include="..\..\AppIconAssets.cs" Link="AppIconAssets.cs" />
-    <Compile Include="..\..\LoginWindowLayoutPolicy.cs" Link="LoginWindowLayoutPolicy.cs" />
-    <Compile Include="..\..\FlyoutPlacementPolicy.cs" Link="FlyoutPlacementPolicy.cs" />
-    <Compile Include="..\..\BridgePolicy.cs" Link="BridgePolicy.cs" />
-    <Compile Include="..\..\DashboardModel.cs" Link="DashboardModel.cs" />
-    <Compile Include="..\..\ProjectsModel.cs" Link="ProjectsModel.cs" />
+    <Compile Include="..\..\Auth\NavigationPolicy.cs" Link="NavigationPolicy.cs" />
+    <Compile Include="..\..\Auth\ProfilePayloadParser.cs" Link="ProfilePayloadParser.cs" />
+    <Compile Include="..\..\Auth\ProfileResponseCoordinator.cs" Link="ProfileResponseCoordinator.cs" />
+    <Compile Include="..\..\Shell\TitleBarLayoutPolicy.cs" Link="TitleBarLayoutPolicy.cs" />
+    <Compile Include="..\..\Settings\SettingsPolicy.cs" Link="SettingsPolicy.cs" />
+    <Compile Include="..\..\Shell\AppIconAssets.cs" Link="AppIconAssets.cs" />
+    <Compile Include="..\..\Auth\LoginWindowLayoutPolicy.cs" Link="LoginWindowLayoutPolicy.cs" />
+    <Compile Include="..\..\Shell\FlyoutPlacementPolicy.cs" Link="FlyoutPlacementPolicy.cs" />
+    <Compile Include="..\..\Bridge\BridgePolicy.cs" Link="BridgePolicy.cs" />
+    <Compile Include="..\..\Pages\Dashboard\DashboardModel.cs" Link="DashboardModel.cs" />
+    <Compile Include="..\..\Pages\Projects\ProjectsModel.cs" Link="ProjectsModel.cs" />
   </ItemGroup>
 </Project>

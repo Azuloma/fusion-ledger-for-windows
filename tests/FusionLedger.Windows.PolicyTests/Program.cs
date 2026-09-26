@@ -46,13 +46,13 @@ var root = new DirectoryInfo(AppContext.BaseDirectory);
 while (root is not null && !File.Exists(Path.Combine(root.FullName, "FusionLedger.Windows.csproj"))) root = root.Parent;
 Assert(root is not null, "Source root must be discoverable.");
 var sourceRoot = root!.FullName;
-var mainXaml = File.ReadAllText(Path.Combine(sourceRoot, "MainWindow.xaml"));
-var mainCode = File.ReadAllText(Path.Combine(sourceRoot, "MainWindow.xaml.cs"));
-var loginXaml = File.ReadAllText(Path.Combine(sourceRoot, "LoginWindow.xaml"));
-var loginCode = File.ReadAllText(Path.Combine(sourceRoot, "LoginWindow.xaml.cs"));
+var mainXaml = File.ReadAllText(Path.Combine(sourceRoot, "Shell", "MainWindow.xaml"));
+var mainCode = File.ReadAllText(Path.Combine(sourceRoot, "Shell", "MainWindow.xaml.cs"));
+var loginXaml = File.ReadAllText(Path.Combine(sourceRoot, "Auth", "LoginWindow.xaml"));
+var loginCode = File.ReadAllText(Path.Combine(sourceRoot, "Auth", "LoginWindow.xaml.cs"));
 var appCode = File.ReadAllText(Path.Combine(sourceRoot, "App.xaml.cs"));
-var versionCode = File.ReadAllText(Path.Combine(sourceRoot, "RuntimeVersionInfo.cs"));
-var themeCode = File.ReadAllText(Path.Combine(sourceRoot, "ThemeService.cs"));
+var versionCode = File.ReadAllText(Path.Combine(sourceRoot, "Settings", "RuntimeVersionInfo.cs"));
+var themeCode = File.ReadAllText(Path.Combine(sourceRoot, "Settings", "ThemeService.cs"));
 Assert(mainXaml.Contains("controls:TitleBar", StringComparison.Ordinal), "MainWindow must use the WinUI TitleBar control.");
 Assert(mainXaml.Contains("BackRequested", StringComparison.Ordinal), "TitleBar back event must remain wired.");
 Assert(mainXaml.Contains("NavigationView", StringComparison.Ordinal) && mainXaml.Contains("FooterMenuItems", StringComparison.Ordinal), "Native navigation must expose footer items.");
@@ -222,7 +222,7 @@ foreach (var locale in new[] { "en-US", "ja-JP" })
     Assert(File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw")).Contains("<data name=\"PleaseWait\">", StringComparison.Ordinal), $"Sign-in loading text must be localized: {locale}");
 }
 
-var backdropCode = File.ReadAllText(Path.Combine(sourceRoot, "ThinAcrylicBackdrop.cs"));
+var backdropCode = File.ReadAllText(Path.Combine(sourceRoot, "Shell", "ThinAcrylicBackdrop.cs"));
 Assert(backdropCode.Contains("DesktopAcrylicKind.Thin", StringComparison.Ordinal) && backdropCode.Contains("IsInputActive = true", StringComparison.Ordinal)
     && backdropCode.Contains("AccessibilitySettings().HighContrast", StringComparison.Ordinal) && mainCode.Contains("UpdateFlyoutBackdropTheme", StringComparison.Ordinal), "Title-bar flyouts must draw active thin acrylic that follows the app theme and High Contrast.");
 Assert(!FlyoutPlacementPolicy.OpenAbove(197, 1000, 50) && FlyoutPlacementPolicy.OpenAbove(139, 117, 1000)
@@ -263,7 +263,7 @@ Assert(BridgePolicy.ParseResult("{\"requestId\":\"r4\",\"status\":500,\"ok\":fal
 Assert(BridgePolicy.ParseResult("{\"requestId\":null,\"status\":400,\"ok\":false}") is null && BridgePolicy.ParseResult("[]") is null
     && BridgePolicy.ParseResult("not json") is null && BridgePolicy.ParseResult(new string(' ', BridgePolicy.MaxResultChars + 1)) is null, "Malformed, uncorrelated or oversized results must be dropped.");
 Assert(BridgeResult.HostFailure("r5", "BRIDGE_UNAVAILABLE", false, BridgeOutcome.Rejected) is { Status: 0, Ok: false, Outcome: BridgeOutcome.Rejected }, "Host failures must report status 0 and an explicit outcome.");
-var bridgeCode = File.ReadAllText(Path.Combine(sourceRoot, "WebBridgeClient.cs"));
+var bridgeCode = File.ReadAllText(Path.Combine(sourceRoot, "Bridge", "WebBridgeClient.cs"));
 Assert(bridgeCode.Contains("settings.IsWebMessageEnabled = true", StringComparison.Ordinal)
     && bridgeCode.Contains("settings.AreDevToolsEnabled = false", StringComparison.Ordinal)
     && bridgeCode.Contains("settings.AreHostObjectsAllowed = false", StringComparison.Ordinal)
@@ -319,7 +319,7 @@ Assert(DashboardModel.ErrorFor(BridgeResult.HostFailure("r", "BRIDGE_UNAVAILABLE
     && DashboardModel.ErrorFor(new BridgeResult("r", 429, false, null, null, "RATE_LIMIT", null, true, BridgeOutcome.None)) == DashboardError.RateLimited
     && DashboardModel.ErrorFor(new BridgeResult("r", 500, false, null, null, "SERVER_ERROR", null, true, BridgeOutcome.None)) == DashboardError.Unexpected,
     "Dashboard errors must map bridge results to honest states.");
-var dashboardCode = File.ReadAllText(Path.Combine(sourceRoot, "DashboardView.cs"));
+var dashboardCode = File.ReadAllText(Path.Combine(sourceRoot, "Pages", "Dashboard", "DashboardView.cs"));
 var usedKeys = System.Text.RegularExpressions.Regex.Matches(dashboardCode, "\"(Dashboard_[A-Za-z]+)\"").Select(m => m.Groups[1].Value)
     .Concat(new[] { "ErrorConnection", "ErrorSession", "ErrorPending", "ErrorMaintenance", "ErrorRateLimit", "ErrorUnexpected" }.Select(k => "Dashboard_" + k + "Title"))
     .Distinct().ToList();
@@ -332,12 +332,12 @@ Assert(mainCode.Contains("_bridge.RequestAsync(\"dashboard\")", StringComparison
     && dashboardCode.Contains("Dashboard_StorageNote", StringComparison.Ordinal)
     && !dashboardCode.Contains("Create project", StringComparison.OrdinalIgnoreCase) && !dashboardCode.Contains("publish:", StringComparison.Ordinal),
     "Dashboard must load through the bridge, keep the storage privacy note and render no actions without a native implementation.");
-var avatarCode = File.ReadAllText(Path.Combine(sourceRoot, "AvatarImage.cs"));
+var avatarCode = File.ReadAllText(Path.Combine(sourceRoot, "Pages", "Common", "AvatarImage.cs"));
 Assert(avatarCode.Contains("picture.Loaded +=", StringComparison.Ordinal) && avatarCode.Contains("picture.ActualThemeChanged +=", StringComparison.Ordinal)
     && dashboardCode.Contains("AvatarImage.Attach(picture, avatar, 56)", StringComparison.Ordinal)
     && mainCode.Contains("AvatarImage.Attach(ProfilePicture, avatar, 64)", StringComparison.Ordinal) && mainCode.Contains("AvatarImage.Attach(AccountPicture, avatar, 96)", StringComparison.Ordinal),
     "Avatars must be decoded again whenever a picture is loaded or its theme changes, so a theme switch never leaves only initials.");
-var captionCode = File.ReadAllText(Path.Combine(sourceRoot, "CaptionButtonTheme.cs"));
+var captionCode = File.ReadAllText(Path.Combine(sourceRoot, "Shell", "CaptionButtonTheme.cs"));
 Assert(captionCode.Contains("TitleBar.PreferredTheme", StringComparison.Ordinal) && captionCode.Contains("root.ActualThemeChanged +=", StringComparison.Ordinal)
     && captionCode.Contains("TitleBarTheme.UseDefaultAppMode", StringComparison.Ordinal)
     && mainCode.Contains("CaptionButtonTheme.Attach(this, RootGrid)", StringComparison.Ordinal) && loginCode.Contains("CaptionButtonTheme.Attach(this, RootGrid)", StringComparison.Ordinal),
@@ -414,8 +414,8 @@ Assert(ProjectsModel.ErrorFor(new BridgeResult("r", 403, false, null, null, "PRO
     && ProjectsModel.ErrorFor(BridgeResult.HostFailure("r", "TIMEOUT", true, BridgeOutcome.None)) == ProjectsError.Connection,
     "Projects errors must map to connection, session, approval, no-access, maintenance and rate-limit states.");
 
-var projectsCode = File.ReadAllText(Path.Combine(sourceRoot, "ProjectsView.cs")) + File.ReadAllText(Path.Combine(sourceRoot, "ProjectsView.Project.cs"));
-var projectKeys = System.Text.RegularExpressions.Regex.Matches(projectsCode + File.ReadAllText(Path.Combine(sourceRoot, "PageParts.cs")), "\"(Projects_[A-Za-z0-9]+)\"")
+var projectsCode = File.ReadAllText(Path.Combine(sourceRoot, "Pages", "Projects", "ProjectsView.cs")) + File.ReadAllText(Path.Combine(sourceRoot, "Pages", "Projects", "ProjectsView.Project.cs"));
+var projectKeys = System.Text.RegularExpressions.Regex.Matches(projectsCode + File.ReadAllText(Path.Combine(sourceRoot, "Pages", "Common", "PageParts.cs")), "\"(Projects_[A-Za-z0-9]+)\"")
     .Select(m => m.Groups[1].Value).Concat(new[] { "Projects_Last7Days", "Projects_Last30Days", "Projects_Last90Days", "Projects_RoleOwner", "Projects_RoleSiteAdmin", "Projects_RoleMember" })
     .Distinct().ToList();
 foreach (var locale in new[] { "en-US", "ja-JP" })

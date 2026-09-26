@@ -10,3 +10,4 @@ artifacts/
 BundleArtifacts/
 .claude_stuff/
 /CLAUDE.md
+.claude/

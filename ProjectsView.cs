@@ -356,7 +356,7 @@ internal sealed partial class ProjectsView : UserControl
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var identity = new StackPanel { Spacing = 8 };
-        var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var titleRow = new InlineWrapPanel();
         titleRow.Children.Add(ProjectLink(project.Id, project.Name, 16));
         titleRow.Children.Add(_p.PrivateBadge());
         identity.Children.Add(titleRow);

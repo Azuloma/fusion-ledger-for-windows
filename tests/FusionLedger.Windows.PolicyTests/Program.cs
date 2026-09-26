@@ -126,7 +126,7 @@ Assert(versionCode.Contains("RuntimeInformation.ProcessArchitecture", StringComp
     && versionCode.Contains("GetAvailableBrowserVersionString", StringComparison.Ordinal)
     && versionCode.Contains("WindowsAppSdkVersion", StringComparison.Ordinal)
     && !versionCode.Contains("typeof(Microsoft.UI.Xaml.Application).Assembly.GetName().Version", StringComparison.Ordinal)
-    && !versionCode.Contains("0.9.0", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
+    && !versionCode.Contains("0.9.1", StringComparison.Ordinal), "Version info must report observed Windows App SDK/WebView2 runtime details without a hardcoded display fallback.");
 Assert(loginXaml.Contains("WebView2", StringComparison.Ordinal) && loginCode.Contains("CoreWebView2", StringComparison.Ordinal), "Only LoginWindow may host WebView2.");
 Assert(loginXaml.Contains("x:Name=\"RootGrid\"", StringComparison.Ordinal)
     && loginCode.Contains("ThemeService.ReadSavedPreference", StringComparison.Ordinal)
@@ -163,10 +163,10 @@ var replacement = appCode.IndexOf("ShowLoginWindow(resetSession: true)", signOut
 var resetHandler = appCode.IndexOf("Login_SessionResetSucceeded", StringComparison.Ordinal);
 var mainClose = appCode.IndexOf("main.Close()", resetHandler, StringComparison.Ordinal);
 Assert(replacement >= 0 && resetHandler >= 0 && mainClose > resetHandler, "Sign out must create the replacement login window before closing MainWindow.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.9.0</Version>", StringComparison.Ordinal), "Version source of truth must be v0.9.0.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.9.0.0\"", StringComparison.Ordinal), "Manifest version must be v0.9.0.");
-Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.9.0", StringComparison.Ordinal)
-    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.9.0", StringComparison.Ordinal), "Version documentation must be updated.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "FusionLedger.Windows.csproj")).Contains("<Version>0.9.1</Version>", StringComparison.Ordinal), "Version source of truth must be v0.9.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "Package.appxmanifest")).Contains("Version=\"0.9.1.0\"", StringComparison.Ordinal), "Manifest version must be v0.9.1.");
+Assert(File.ReadAllText(Path.Combine(sourceRoot, "VERSION.md")).Contains("v0.9.1", StringComparison.Ordinal)
+    && File.ReadAllText(Path.Combine(sourceRoot, "CHANGELOG.md")).Contains("## v0.9.1", StringComparison.Ordinal), "Version documentation must be updated.");
 foreach (var locale in new[] { "en-US", "ja-JP" })
 {
     var resource = File.ReadAllText(Path.Combine(sourceRoot, "Strings", locale, "Resources.resw"));
@@ -433,5 +433,9 @@ Assert(mainCode.Contains("if (page == NativePage.Projects) return CreateProjects
     && mainCode.Contains("_projects?.TryGoBack() == true", StringComparison.Ordinal)
     && dashboardCode.Contains("_openProject(project.Id, project.Name)", StringComparison.Ordinal),
     "Projects must be the native page, Back must walk its screens and the Dashboard must open projects natively.");
+Assert(projectsCode.Contains("var titleRow = new InlineWrapPanel();", StringComparison.Ordinal)
+    && projectsCode.Contains("var title = new InlineWrapPanel { HorizontalSpacing = 12 };", StringComparison.Ordinal)
+    && projectsCode.Contains("count == 1 ? L(\"Projects_CommitCountOne\")", StringComparison.Ordinal),
+    "Long project names must wrap with their label, and one commit must read in the singular.");
 
-Console.WriteLine("v0.9.0 native shell, dashboard, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");
+Console.WriteLine("v0.9.1 native shell, dashboard, settings, version info, title bar, flyout, login boundary, policy, profile, concurrency, docs and localization tests passed.");

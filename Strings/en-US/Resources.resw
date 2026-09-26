@@ -166,4 +166,5 @@
   <data name="Projects_ErrorNoAccessTitle"><value>This item isn&apos;t available</value></data>
   <data name="Projects_ErrorNoAccess"><value>You may no longer have access, or it was removed. Go back to the project list to see the current projects.</value></data>
   <data name="Projects_ErrorUnexpectedTitle"><value>Projects couldn&apos;t be loaded</value></data>
+  <data name="Projects_CommitCountOne"><value>1 commit</value></data>
 </root>

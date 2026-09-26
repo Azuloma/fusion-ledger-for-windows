@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.9.1
+
+- Project names and the Private label now wrap (`InlineWrapPanel`) in the project list and the project heading. A long name was clipped and pushed the label out of view.
+- Commit counts use the singular form for one commit ("1 commit").
+
 ## v0.9.0
 
 - Added the native, read-only Projects page on the data bridge (`projects`, `project`, `projectCommits`, `commit`), following the web project pages. The list shows your profile, accessible projects, a project search (name and description, up to 150 characters), rows with the private label, description, latest version, last update and the reservation state ("Available for work" or "Working" with the holder), and "Load more" paging.

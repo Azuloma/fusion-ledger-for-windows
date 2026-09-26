@@ -163,6 +163,75 @@ internal sealed class PageParts(Func<string, string> localize)
         (Microsoft.UI.Xaml.Media.FontFamily)Application.Current.Resources["SymbolThemeFontFamily"];
 }
 
+/// <summary>
+/// Lays children left to right and moves a child to the next line when it does not fit, so a long project name
+/// wraps and its label follows instead of being clipped (a horizontal StackPanel never wraps).
+/// </summary>
+internal sealed class InlineWrapPanel : Panel
+{
+    public double HorizontalSpacing { get; set; } = 10;
+
+    public double VerticalSpacing { get; set; } = 4;
+
+    protected override global::Windows.Foundation.Size MeasureOverride(global::Windows.Foundation.Size availableSize)
+    {
+        double lineWidth = 0, lineHeight = 0, width = 0, height = 0;
+        foreach (var child in Children)
+        {
+            child.Measure(availableSize);
+            var size = child.DesiredSize;
+            var needed = lineWidth > 0 ? lineWidth + HorizontalSpacing + size.Width : size.Width;
+            if (lineWidth > 0 && needed > availableSize.Width)
+            {
+                width = Math.Max(width, lineWidth);
+                height += lineHeight + VerticalSpacing;
+                lineWidth = size.Width;
+                lineHeight = size.Height;
+            }
+            else
+            {
+                lineWidth = needed;
+                lineHeight = Math.Max(lineHeight, size.Height);
+            }
+        }
+        return new global::Windows.Foundation.Size(Math.Max(width, lineWidth), height + lineHeight);
+    }
+
+    protected override global::Windows.Foundation.Size ArrangeOverride(global::Windows.Foundation.Size finalSize)
+    {
+        double x = 0, y = 0, lineHeight = 0;
+        var line = new List<UIElement>();
+        void FinishLine()
+        {
+            // Children on one line are centered vertically against the tallest one.
+            double offset = 0;
+            foreach (var item in line)
+            {
+                var size = item.DesiredSize;
+                item.Arrange(new global::Windows.Foundation.Rect(offset, y + (lineHeight - size.Height) / 2, Math.Min(size.Width, finalSize.Width), size.Height));
+                offset += size.Width + HorizontalSpacing;
+            }
+            line.Clear();
+        }
+        foreach (var child in Children)
+        {
+            var size = child.DesiredSize;
+            if (x > 0 && x + HorizontalSpacing + size.Width > finalSize.Width)
+            {
+                FinishLine();
+                y += lineHeight + VerticalSpacing;
+                x = 0;
+                lineHeight = 0;
+            }
+            x = x > 0 ? x + HorizontalSpacing + size.Width : size.Width;
+            lineHeight = Math.Max(lineHeight, size.Height);
+            line.Add(child);
+        }
+        FinishLine();
+        return finalSize;
+    }
+}
+
 /// <summary>A side column next to the main column when wide, stacked (in a chosen order) when narrow.</summary>
 internal sealed class TwoColumnLayout
 {

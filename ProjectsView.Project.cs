@@ -49,7 +49,7 @@ internal sealed partial class ProjectsView
         var header = new Grid { ColumnSpacing = 12 };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+        var title = new InlineWrapPanel { HorizontalSpacing = 12 };
         var heading = PageParts.Heading(project.Name, AutomationHeadingLevel.Level1, "TitleTextBlockStyle");
         title.Children.Add(heading);
         title.Children.Add(_p.PrivateBadge());
@@ -133,7 +133,7 @@ internal sealed partial class ProjectsView
             Grid.SetColumnSpan(empty, 2);
             top.Children.Add(empty);
         }
-        var count = Centered(PageParts.Caption(string.Format(L("Projects_CommitCountFormat"), detail.Summary.Total)));
+        var count = Centered(PageParts.Caption(CommitCount(detail.Summary.Total)));
         Grid.SetColumn(count, 2);
         top.Children.Add(count);
         panel.Children.Add(top);
@@ -323,7 +323,7 @@ internal sealed partial class ProjectsView
 
         void Render()
         {
-            summary.Text = string.Format(L("Projects_CommitCountFormat"), total);
+            summary.Text = CommitCount(total);
             clear.Visibility = filter.IsActive ? Visibility.Visible : Visibility.Collapsed;
             timeline.Children.Clear();
             if (commits.Count == 0) timeline.Children.Add(_p.Secondary(L(filter.IsActive ? "Projects_NoResults" : "Projects_NoCommits")));
@@ -334,7 +334,7 @@ internal sealed partial class ProjectsView
                 dayHeader.Children.Add(PageParts.Glyph("", 14));
                 var dayText = ProjectsModel.FormatDay(day, _language);
                 dayHeader.Children.Add(PageParts.Heading(dayText.Length > 0 ? dayText : L("Projects_NotRecorded"), AutomationHeadingLevel.Level2));
-                dayHeader.Children.Add(Centered(PageParts.Caption(string.Format(L("Projects_CommitCountFormat"), group.Count))));
+                dayHeader.Children.Add(Centered(PageParts.Caption(CommitCount(group.Count))));
                 section.Children.Add(dayHeader);
                 var list = new StackPanel();
                 foreach (var commit in group)
@@ -538,6 +538,9 @@ internal sealed partial class ProjectsView
         }
         if (!launched) ShowNotice("Projects_OpenLinkFailedTitle", "Projects_OpenLinkFailed");
     }
+
+    private string CommitCount(int count) =>
+        count == 1 ? L("Projects_CommitCountOne") : string.Format(L("Projects_CommitCountFormat"), count);
 
     private static string JoinDot(params string[] parts) => string.Join(" · ", parts.Where(part => part.Length > 0));
 }
